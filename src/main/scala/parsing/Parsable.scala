@@ -11,12 +11,12 @@ package parsing
  */
 sealed trait Parsable[A] {
   // ----- Must implement -----
-  def startSymbol: String
+  val startSymbol: String
 
   // This mapping gives us all of the productions for this particular
   // nonterminal, and paired with them are methods to construct one
   // of this nonterminal-associated `A` from its constituent parts.
-  def synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])]
+  val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])]
 
   // ----- Cannot be overridden -----
   // This may be overridden to specify any terminal symbols of a type that
@@ -25,10 +25,11 @@ sealed trait Parsable[A] {
   // terminal symbols in the grammar. This is ONLY actually used in Word, below.
   // ASSUMPTION: The open symbols of this Parsable are not (non-open) terminal
   // symbols in the grammar of any of its children.
-  def openSymbols: Set[String] = Set()
+  // TODO: Come up with a better solution than this!
+  val openSymbols: Set[String] = Set()
 
   // List of all of the Parsables that are components of this one (used in productions)
-  final def children: Set[Parsable[_]] = {
+  final lazy val children: Set[Parsable[_]] = {
     val topLayer = synchronousProductions.keySet.flatten - this
     val below = topLayer.flatMap(_.children)
     topLayer ++ below - this
@@ -36,20 +37,20 @@ sealed trait Parsable[A] {
 
   // automatically determine the productions to give the grammar from the
   // synchronous productions of the Parsable and its children
-  final def processedSynchronousProductions: Map[Production, (List[AST] => Option[A])] =
+  final lazy val processedSynchronousProductions: Map[Production, (List[AST] => Option[A])] =
     synchronousProductions.map {
       case (k, v) => (RawProduction(startSymbol, k.map(_.startSymbol)), v)
     }
 
-  final def productions: Set[Production] = {
+  final lazy val productions: Set[Production] = {
     children.foldRight(processedSynchronousProductions.keySet)(_.productions ++ _)
   }
 
-  private final def allOpenSymbols: Set[String] =
+  private final lazy val allOpenSymbols: Set[String] =
     children.foldLeft(openSymbols)(_ ++ _.allOpenSymbols)
 
   // the grammar just requires the productions, start symbol, and open symbols
-  final def grammar: Grammar = new Grammar(productions, Some(startSymbol), allOpenSymbols)
+  final lazy val grammar: Grammar = new Grammar(productions, Some(startSymbol), allOpenSymbols)
 
   // automatically get the Parsable from a string; None if it can't be parsed
   final def fromString(s: String) = grammar.parse(s) flatMap fromAST
@@ -86,8 +87,8 @@ sealed trait SimpleParsable[A] extends Parsable[A] {
 // TODO: Make sure this is actually useful? This is a generalized part of speech, basically
 class LexicalCategory(
   override val startSymbol: String,
-  val subLexicon: (String => Boolean))
-  extends SimpleParsable[String] {
+  val subLexicon: (String => Boolean)) extends SimpleParsable[String] {
+
   override def fromAST(ast: AST): Option[String] = ast.production match {
     case None if subLexicon(ast.label) => Some(ast.label)
     case _                             => None
@@ -98,4 +99,6 @@ class LexicalCategory(
 case class Terminal(override val startSymbol: String)
   extends LexicalCategory(startSymbol, Set(startSymbol))
 // Open lexical category, matching any string
-case object Word extends LexicalCategory("w", (_ => true))
+case object Word extends LexicalCategory("w", (_ => true)) {
+  override val openSymbols = Set(startSymbol)
+}
