@@ -83,18 +83,19 @@ sealed trait SimpleParsable[A] extends Parsable[A] {
   final val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])] = Map()
 }
 
-case class Terminal(val startSymbol: String) extends SimpleParsable[String] {
+// TODO: Make sure this is actually useful? This is a generalized part of speech, basically
+class LexicalCategory(
+  override val startSymbol: String,
+  val subLexicon: (String => Boolean))
+  extends SimpleParsable[String] {
   override def fromAST(ast: AST): Option[String] = ast.production match {
-    case None if ast.label == startSymbol => Some(startSymbol)
-    case _ => None
+    case None if subLexicon(ast.label) => Some(ast.label)
+    case _                             => None
   }
 }
 
-case object Word extends SimpleParsable[String] {
-  val startSymbol = "w"
-  override def fromAST(ast: AST): Option[String] = ast.children match {
-    case wordLeaf :: Nil => Some(wordLeaf.label)
-    case _ => None
-  }
-  override val openSymbols = Set(startSymbol)
-}
+// Unary lexical category, consisting only of one string
+case class Terminal(override val startSymbol: String)
+  extends LexicalCategory(startSymbol, Set(startSymbol))
+// Open lexical category, matching any string
+case object Word extends LexicalCategory("w", (_ => true))
