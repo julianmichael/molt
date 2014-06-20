@@ -26,6 +26,7 @@ sealed trait Parsable[A] {
   // ASSUMPTION: The open symbols of this Parsable are not (non-open) terminal
   // symbols in the grammar of any of its children.
   // TODO: Come up with a better solution than this!
+  // TODO: The better solution... LEXICAL SYMBOLS (aka POS tags. Just list the LexicalCategory things)
   val openSymbols: Set[String] = Set()
 
   // List of all of the Parsables that are components of this one (used in productions)

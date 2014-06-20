@@ -27,6 +27,7 @@ class Grammar(
   lazy val nonterminals = productions.map(_.label)
 
   // anything else (as long as it isn't the wordSymbol) is assumed to be a terminal
+  // TODO THIS NEEDS TO CHANGE! to accommodate LEXICAL CATEGORIES maybe. YEAH! definitely!!!!
   lazy val terminals = productions.flatMap(_.children) -- nonterminals -- openSymbols
   // TODO warn if wordSymbol is not part of the computed set of terminals
 
