@@ -51,11 +51,11 @@ sealed trait Parsable[A] {
     children.foldRight(processedSynchronousProductions.keySet)(_.productions ++ _)
   }
 
-  private final lazy val allTokens: Set[String] =
+  final lazy val allTokens: Set[String] =
     children.foldLeft(tokens)(_ ++ _.allTokens)
 
   // TODO might want something more general than always the basic tokenizer
-  private final lazy val tokenizer: Tokenizer = new BasicTokenizer(allTokens)
+  final lazy val tokenizer: Tokenizer = new BasicTokenizer(allTokens)
 
   // the grammar just requires the productions, start symbol, and open symbols
   final lazy val grammar: Grammar = new Grammar(productions, lexicalCategories, Some(startSymbol))
