@@ -26,6 +26,7 @@ case class RawProduction(
   extends Production {
   
   override lazy val toCNF: Set[CNFProduction] = children match {
+    case Nil                  => throw new AssertionError("Production's children are null")
     case child :: Nil         => Set(Unary(label, child))
     case left :: right :: Nil => Set(Binary(label, left, right))
     case left :: remainder => {
