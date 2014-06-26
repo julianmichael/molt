@@ -51,11 +51,6 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           tok <- tokens
         } yield assert(parsable.tokenizer.tokenize(str) === tok)
 
-        for {
-          tok <- tokens
-          ast <- astree
-        } yield assert(parsable.grammar.parseTokens(tok).head === ast)
-
         def testASTSanity(ast: AST): Unit = {
           ast.children match {
             case Nil => assert(ast.production === None)
@@ -67,16 +62,32 @@ abstract class ParsableTestSuite[A] extends FunSuite {
               }
             }
           }
-          //      ast.children.foreach(testASTSanity)
+          // ast.children.foreach(testASTSanity)
         }
         for {
           ast <- astree
         } yield testASTSanity(ast)
 
         for {
+          tok <- tokens
+          ast <- astree
+        } yield assert(parsable.grammar.parseTokens(tok).head === ast)
+
+        for {
+          str <- string
+          ast <- astree
+        } yield assert(
+          parsable.grammar.parseTokens(parsable.tokenizer.tokenize(str)).head === ast)
+
+        for {
           ast <- astree
           sym <- symbol
         } yield assert(parsable.fromAST(ast) === Some(sym))
+
+        for {
+          tok <- tokens
+          sym <- symbol
+        } yield assert(parsable.fromAST(parsable.grammar.parseTokens(tok).head) === sym)
 
         for {
           str <- string
