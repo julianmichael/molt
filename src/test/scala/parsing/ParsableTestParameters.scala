@@ -22,23 +22,23 @@ abstract class ParsableTestSuite[A] extends FunSuite {
   val parameters: ParsableTestParameters[A]
   val parsable: Parsable[A]
 
-  test(s"$parsable children") {
+  test(s"children") {
     assert(parsable.children === parameters.children)
   }
 
-  test(s"$parsable grammar productions") {
+  test(s"grammar productions") {
     assert(parsable.grammar.productions === parameters.productions)
   }
 
-  test(s"$parsable CNF productions") {
+  test(s"CNF productions") {
     assert(parsable.grammar.cnfProductions === parameters.cnfProductions)
   }
 
-  test(s"$parsable nonterminals") {
+  test(s"nonterminals") {
     assert(parsable.grammar.nonterminals === parameters.nonterminals)
   }
 
-  test(s"$parsable tokens") {
+  test(s"tokens") {
     assert(parsable.allTokens === parameters.tokens)
   }
 
