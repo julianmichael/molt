@@ -42,6 +42,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
     assert(parsable.allTokens === parameters.tokens)
   }
 
+  /*
   parameters.testParses.foreach {
     case TestParse(string, tokens, astree, symbol) => {
 
@@ -90,6 +91,51 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         assert(parsable.fromString(str) === Set(sym))
       }
 
+    }
+  }
+  */
+  test("Test parses") {
+    parameters.testParses.foreach {
+      case TestParse(string, tokens, astree, symbol) => {
+
+        for {
+          str <- string
+          tok <- tokens
+        } yield assert(parsable.tokenizer.tokenize(str) === tok)
+
+        for {
+          tok <- tokens
+          ast <- astree
+        } yield assert(parsable.grammar.parseTokens(tok).head === ast)
+
+        def testASTSanity(ast: AST): Unit = {
+          ast.children match {
+            case Nil => assert(ast.production === None)
+            case xs => {
+              ast.production match {
+                case None    => assert(false)
+                case Some(p) => assert(parsable.productions(p))
+                // TODO make work with lexical categories
+              }
+            }
+          }
+          //      ast.children.foreach(testASTSanity)
+        }
+        for {
+          ast <- astree
+        } yield testASTSanity(ast)
+
+        for {
+          ast <- astree
+          sym <- symbol
+        } yield assert(parsable.fromAST(ast) === Some(sym))
+
+        for {
+          str <- string
+          sym <- symbol
+        } yield assert(parsable.fromString(str) === Set(sym))
+
+      }
     }
   }
 }
