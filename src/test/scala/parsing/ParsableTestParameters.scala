@@ -17,7 +17,7 @@ trait ParsableTestParameters[A] {
   def testParses: List[TestParse[A]]
 }
 
-object ParsableTestSuite extends FunSuite {
+trait ParsableTestSuite extends FunSuite {
   def testParsableWithParameters[A](params: ParsableTestParameters[A])(parsable: Parsable[A]) = {
     import params._
     test(s"$parsable children") {
