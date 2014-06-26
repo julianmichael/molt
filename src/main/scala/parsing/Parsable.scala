@@ -32,7 +32,7 @@ sealed trait Parsable[A] {
     val below = topLayer.flatMap(_.children)
     topLayer ++ below - this
   }
-  
+
   // all the lexical categories required to parse this Parsable
   final lazy val lexicalCategories: Set[LexicalCategory] = {
     (children + this) collect {
@@ -62,6 +62,14 @@ sealed trait Parsable[A] {
 
   // automatically get the Parsable from a string; None if it can't be parsed
   final def fromString(s: String) = grammar.parseTokens(tokenizer.tokenize(s)) flatMap fromAST
+
+  final def fromStringUnique(s: String) = {
+    val results = fromString(s)
+    if (results.size == 1)
+      Some(results.head)
+    else
+      None
+  }
 
   // parse from an abstract syntax tree returned by the parser 
   def fromAST(ast: AST): Option[A]
