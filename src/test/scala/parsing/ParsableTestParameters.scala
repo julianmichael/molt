@@ -42,58 +42,6 @@ abstract class ParsableTestSuite[A] extends FunSuite {
     assert(parsable.allTokens === parameters.tokens)
   }
 
-  /*
-  parameters.testParses.foreach {
-    case TestParse(string, tokens, astree, symbol) => {
-
-      for {
-        str <- string
-        tok <- tokens
-      } yield test(s"$string tokenizing") {
-        assert(parsable.tokenizer.tokenize(str) === tok)
-      }
-
-      for {
-        tok <- tokens
-        ast <- astree
-      } yield test(s"AST for $parsable tokens $tok") {
-        assert(parsable.grammar.parseTokens(tok).head === ast)
-      }
-
-      def testASTSanity(ast: AST): Unit = {
-        ast.children match {
-          case Nil => assert(ast.production === None)
-          case xs => {
-            ast.production match {
-              case None    => assert(false)
-              case Some(p) => assert(parsable.productions(p))
-              // TODO make work with lexical categories
-            }
-          }
-        }
-        //      ast.children.foreach(testASTSanity)
-      }
-      for {
-        ast <- astree
-      } yield testASTSanity(ast)
-
-      for {
-        ast <- astree
-        sym <- symbol
-      } yield test(s"Symbolic representation of AST for $parsable $symbol") {
-        assert(parsable.fromAST(ast) === Some(sym))
-      }
-
-      for {
-        str <- string
-        sym <- symbol
-      } yield test(s"Symbolic representation of $parsable $string") {
-        assert(parsable.fromString(str) === Set(sym))
-      }
-
-    }
-  }
-  */
   test("Test parses") {
     parameters.testParses.foreach {
       case TestParse(string, tokens, astree, symbol) => {
