@@ -9,8 +9,15 @@ import util.Memoize
 // signature to be parsed without regard for the particular signature.
 class Grammar(
   val productions: Set[Production],
-  val lexicalCategories: Set[LexicalCategory],
+  val preLexicalCategories: Set[LexicalCategory],
   val startSymbol: Option[String] = None) {
+
+  // TODO find some solution other than this hackish one to make Word match only
+  // the unmatched nonterminals
+  // once it's fixed, change the original parameter back to lexicalCategories
+  // and get rid of the nonsense below during the level 0 firstEntryIteration.
+  val hasWord = preLexicalCategories(Word)
+  val lexicalCategories = prelexicalCategories - Word
 
   // we change the grammar to Chomsky Normal Form* for parsing
   // * with unary productions 
@@ -32,10 +39,16 @@ class Grammar(
       val firstEntryIteration: Set[CNFGrammarAST] = {
         if (level == 0) { // lexical
           val tok = tokens(offset)
-          for {
+          // (hack for Word is continued here)
+          val lexcats = for {
             category <- lexicalCategories
             if category.subLexicon(tok)
           } yield CNFParent(Unary(category.startSymbol, tok), List(CNFLeaf(tok)))
+          if(lexcats.isEmpty)
+            Set(CNFParent(Unary(Word.startSymbol, tok), List(CNFLeaf(tok))))
+          else
+            lexcats
+          // (end Word hack)
         } else { // binary
           // pivotPairs: a list of all of the pairs of table cells that could correspond
           // to the children of the current table cell
