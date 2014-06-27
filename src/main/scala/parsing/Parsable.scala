@@ -91,6 +91,25 @@ trait ComplexParsable[A] extends Parsable[A] {
 }
 
 /*
+ * Most ComplexParsables will be objects, but classes can be used for even
+ * cooler functionality, for example with the + construction in common notation
+ */
+case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
+  final val startSymbol = s"${parsable.startSymbol}+"
+  final val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[List[A]])] = Map(
+    List(parsable, this) -> ( c =>
+      for {
+        head <- parsable.fromAST(c(0))
+        tail <- this.fromAST(c(1))
+      } yield head :: tail),
+    List(parsable) -> ( c =>
+      for {
+        end <- parsable.fromAST(c(0))
+      } yield List(end)
+    ))
+}
+
+/*
  * SimpleParsable objects are for special cases where
  * we don't want to add any productions to the grammar but we still
  * need to parse stuff from ASTs/strings. This is important for not asploding
