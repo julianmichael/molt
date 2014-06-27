@@ -40,12 +40,12 @@ class Grammar(
         if (level == 0) { // lexical
           val tok = tokens(offset)
           // (hack for Word is continued here)
-          val lexcats = for {
+          val lexcats: Set[CNFGrammarAST] = for {
             category <- lexicalCategories
             if category.subLexicon(tok)
           } yield CNFParent(Unary(category.startSymbol, tok), List(CNFLeaf(tok)))
           if(lexcats.isEmpty)
-            Set(CNFParent(Unary(Word.startSymbol, tok), List(CNFLeaf(tok))))
+            Set[CNFGrammarAST](CNFParent(Unary(Word.startSymbol, tok), List(CNFLeaf(tok))))
           else
             lexcats
           // (end Word hack)
