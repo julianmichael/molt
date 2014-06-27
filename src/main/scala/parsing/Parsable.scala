@@ -92,8 +92,9 @@ trait ComplexParsable[A] extends Parsable[A] {
 
 /*
  * SimpleParsable objects are for special cases where
- * we don't want to add any productions but we still
- * need to parse stuff from ASTs/strings.
+ * we don't want to add any productions to the grammar but we still
+ * need to parse stuff from ASTs/strings. This is important for not asploding
+ * the grammar size just because we have a large vocabulary.
  */
 sealed trait SimpleParsable[A] extends Parsable[A] {
   final val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])] = Map()
@@ -103,9 +104,13 @@ class LexicalCategory(
   override val startSymbol: String,
   val subLexicon: (String => Boolean)) extends SimpleParsable[String] {
 
-  override def fromAST(ast: AST): Option[String] = ast.production match {
-    case None if subLexicon(ast.label) => Some(ast.label)
-    case _                             => None
+  // Lexical categories will always have this structure, looking like POS tags.
+  // So even individual terminal symbols will get their own POS-tag type things.
+  // I think this makes sense.
+  override def fromAST(ast: AST): Option[String] = ast match {
+    case BasicASTInternal(`startSymbol`, List(BasicASTLeaf(str))) if subLexicon(str) =>
+      Some(str)
+    case _ => None
   }
 }
 
@@ -115,4 +120,5 @@ case class Terminal(override val startSymbol: String)
   override val tokens = Set(startSymbol)
 }
 // Open lexical category, matching any string
+// TODO this should be given a more expressive name
 case object Word extends LexicalCategory("w", (_ => true))

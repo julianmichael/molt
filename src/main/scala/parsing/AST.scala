@@ -24,10 +24,17 @@ trait AST {
 
 /*
  * Most general AST designed to be produced by a CFG parser
+ * TODO: implement internal nodes with a -nonempty- list of children.
+ * For now, it's just enforced all of the time, but it'd be nicer to have it
+ * done by type checking.
  */
-case class BasicAST(
-  val label: String,
-  val children: List[BasicAST]) extends AST
+sealed abstract class BasicAST(val label: String) extends AST
+case class BasicASTInternal(
+  override val label: String,
+  val children: List[BasicAST]) extends BasicAST(label)
+case class BasicASTLeaf(override val label: String) extends BasicAST(label) {
+  override val children = Nil
+}
 
 /*
  * AST with only binary and unary productions (encoded in
@@ -51,11 +58,11 @@ case class CNFParent(
   }
   lazy val undo = cnfProduction match {
     case ChunkedBinary(_, _, _) => None
-    case _                      => Some(BasicAST(label, children.flatMap(_.flattened).map(_.undo).flatten))
+    case _                      => Some(BasicASTInternal(label, children.flatMap(_.flattened).map(_.undo).flatten))
   }
 }
 case class CNFLeaf(val label: String) extends CNFGrammarAST {
   val children = Nil
   val flattened = this :: Nil
-  val undo = Some(BasicAST(label, Nil))
+  val undo = Some(BasicASTLeaf(label))
 }

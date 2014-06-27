@@ -51,6 +51,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           tok <- tokens
         } yield assert(parsable.tokenizer.tokenize(str) === tok)
 
+        /*
         def testASTSanity(ast: AST): Unit = {
           ast.children match {
             case Nil => assert(ast.production === None)
@@ -67,6 +68,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           ast <- astree
         } yield testASTSanity(ast)
+        */
 
         for {
           tok <- tokens
