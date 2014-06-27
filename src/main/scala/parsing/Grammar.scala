@@ -17,7 +17,7 @@ class Grammar(
   // once it's fixed, change the original parameter back to lexicalCategories
   // and get rid of the nonsense below during the level 0 firstEntryIteration.
   val hasWord = preLexicalCategories(Word)
-  val lexicalCategories = prelexicalCategories - Word
+  val lexicalCategories = preLexicalCategories - Word
 
   // we change the grammar to Chomsky Normal Form* for parsing
   // * with unary productions 
