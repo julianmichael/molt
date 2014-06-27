@@ -89,7 +89,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           tok <- tokens
           sym <- symbol
-        } yield assert(parsable.fromAST(parsable.grammar.parseTokens(tok).head) === sym)
+        } yield assert(parsable.fromAST(parsable.grammar.parseTokens(tok).head) === Some(sym))
 
         for {
           str <- string
