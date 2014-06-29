@@ -10,7 +10,7 @@ case class TestParse[A](
 
 trait ParsableTestParameters[A] {
   def children: Set[Parsable[_]]
-  def nonterminals: Set[String]
+  def nonterminals: Set[Parsable[_]]
   def tokens: Set[String]
   def productions: Set[Production[Parsable[_]]]
   def cnfProductions: Set[CNFProduction[Parsable[_]]]
