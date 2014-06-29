@@ -5,16 +5,16 @@ import org.scalatest.FunSuite
 case class TestParse[A](
     string: Option[String],
     tokens: Option[List[String]],
-    ast: Option[AST],
+    ast: Option[AST[Parsable[_]]],
     symbolic: Option[A])
 
 trait ParsableTestParameters[A] {
   def children: Set[Parsable[_]]
-    def nonterminals: Set[String]
-    def tokens: Set[String]
-    def productions: Set[Production]
-    def cnfProductions: Set[CNFProduction]
-    def testParses: List[TestParse[A]]
+  def nonterminals: Set[String]
+  def tokens: Set[String]
+  def productions: Set[Production[Parsable[_]]]
+  def cnfProductions: Set[CNFProduction[Parsable[_]]]
+  def testParses: List[TestParse[A]]
 }
 
 abstract class ParsableTestSuite[A] extends FunSuite {
