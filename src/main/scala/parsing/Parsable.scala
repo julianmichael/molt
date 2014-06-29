@@ -7,12 +7,11 @@ package parsing
  */
 sealed trait Parsable[A] {
   // ----- Must implement -----
-  val startSymbol: String
 
   // This mapping gives us all of the productions for this particular
   // nonterminal, and paired with them are methods to construct one
   // of this nonterminal-associated `A` from its constituent parts.
-  val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])]
+  val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])]
 
   // ----- May be overridden -----
   // These are the strings that will be regarded as individual words (beyond the
@@ -34,20 +33,20 @@ sealed trait Parsable[A] {
   }
 
   // all the lexical categories required to parse this Parsable
-  final lazy val lexicalCategories: Set[LexicalCategory] = {
-    (children + this) collect {
-      case c: LexicalCategory => c
-    }
+  final lazy val lexicalCategories: List[ParsableLexicalCategory] = {
+    ((children + this) collect {
+      case (c: ParsableLexicalCategory) => c
+    }).toList
   }
 
   // automatically determine the productions to give the grammar from the
   // synchronous productions of the Parsable and its children
-  final lazy val processedSynchronousProductions: Map[Production, (List[AST] => Option[A])] =
+  final lazy val processedSynchronousProductions: Map[Production[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] =
     synchronousProductions.map {
-      case (k, v) => (RawProduction(startSymbol, k.map(_.startSymbol)), v)
+      case (k, v) => (Production[Parsable[_]](this, k), v)
     }
 
-  final lazy val productions: Set[Production] = {
+  final lazy val productions: Set[Production[Parsable[_]]] = {
     children.foldRight(processedSynchronousProductions.keySet)(_.productions ++ _)
   }
 
@@ -57,8 +56,8 @@ sealed trait Parsable[A] {
   // TODO might want something more general than always the basic tokenizer
   final lazy val tokenizer: Tokenizer = new BasicTokenizer(allTokens)
 
-  // the grammar just requires the productions, start symbol, and open symbols
-  final lazy val grammar: Grammar = new Grammar(productions, lexicalCategories, Some(startSymbol))
+  // the grammar just requires the productions, lexical categories, and start symbol
+  final lazy val grammar: Grammar[Parsable[_]] = new Grammar[Parsable[_]](productions, lexicalCategories, Some(this))
 
   // automatically get the Parsable from a string; None if it can't be parsed
   final def fromString(s: String) = grammar.parseTokens(tokenizer.tokenize(s)) flatMap fromAST
@@ -72,21 +71,23 @@ sealed trait Parsable[A] {
   }
 
   // parse from an abstract syntax tree returned by the parser 
-  def fromAST(ast: AST): Option[A]
+  def fromAST(ast: AST[Parsable[_]]): Option[A]
 }
 
 /*
- * ComplexParsable objects rely deterministically on
+ * ComplexParsable objects rely on
  * their productions and determine everything from
  * there. The bulk of objects will implement this one.
  */
 trait ComplexParsable[A] extends Parsable[A] {
-  final def fromAST(ast: AST): Option[A] = {
-    for {
-      p <- ast.production
-      func <- processedSynchronousProductions.get(p)
-      item <- func(ast.children)
-    } yield item
+  final def fromAST(ast: AST[Parsable[_]]): Option[A] = ast match {
+    case ASTParent(_, children) =>
+      for {
+        p <- ast.production
+        func <- processedSynchronousProductions.get(p)
+        item <- func(children)
+      } yield item
+    case ASTLeaf(_) => None
   }
 }
 
@@ -95,8 +96,7 @@ trait ComplexParsable[A] extends Parsable[A] {
  * cooler functionality, for example with the + construction in common notation
  */
 case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
-  final val startSymbol = s"${parsable.startSymbol}+"
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[List[A]])] = Map(
+  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
     List(parsable, this) -> ( c =>
       for {
         head <- parsable.fromAST(c(0))
@@ -116,28 +116,29 @@ case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
  * the grammar size just because we have a large vocabulary.
  */
 sealed trait SimpleParsable[A] extends Parsable[A] {
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST] => Option[A])] = Map()
+  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] = Map()
 }
 
-class LexicalCategory(
-  override val startSymbol: String,
-  val subLexicon: (String => Boolean)) extends SimpleParsable[String] {
 
-  // Lexical categories will always have this structure, looking like POS tags.
-  // So even individual terminal symbols will get their own POS-tag type things.
-  // I think this makes sense.
-  override def fromAST(ast: AST): Option[String] = ast match {
-    case BasicASTInternal(`startSymbol`, List(BasicASTLeaf(str))) if subLexicon(str) =>
+
+class ParsableLexicalCategory(
+  val subLexicon: (String => Boolean))
+  extends LexicalCategory[Parsable[_]] with SimpleParsable[String] {
+  override val startSymbol = this
+  override def fromAST(ast: AST[Parsable[_]]): Option[String] = ast match {
+    case ASTParent(`startSymbol`, List(ASTLeaf(str))) if subLexicon(str) =>
       Some(str)
     case _ => None
   }
 }
 
-// Unary lexical category, consisting only of one string
-case class Terminal(override val startSymbol: String)
-  extends LexicalCategory(startSymbol, Set(startSymbol)) {
-  override val tokens = Set(startSymbol)
+// lexical category consisting only of one string
+case class Terminal(symbol: String)
+  extends ParsableLexicalCategory(Set(symbol)) {
+  override val tokens = Set(symbol)
 }
 // Open lexical category, matching any string
 // TODO this should be given a more expressive name
-case object Word extends LexicalCategory("w", (_ => true))
+// XXX remove this
+case object Word
+  extends ParsableLexicalCategory((_ => true))

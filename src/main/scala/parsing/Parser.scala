@@ -1,9 +1,9 @@
 package parsing
 
-class Parser(
+class Parser[A](
   val tokenizer: Tokenizer,
-  val grammar: Grammar) {
+  val grammar: Grammar[A]) {
 
-  def parsings(s: String): Set[AST] = ???
+  def parsings(s: String): Set[AST[A]] = ???
 
 }

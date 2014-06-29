@@ -1,68 +1,62 @@
 package parsing
 
-trait AST {
-  def label: String
-  def children: List[AST]
-  def isLeaf = children.isEmpty
-  def production: Option[Production] =
-    if (isLeaf) None
-    else Some(RawProduction(label, children.map(_.label)))
-  override def toString: String = children match {
-    case Nil          => label
-    case child :: Nil => s"$label($child)"
-    case children     => s"$label(${children.mkString(",")})"
-  }
-  // borrowed from dhgarrette
-  def pretty: String = prettyLines.mkString("\n")
-  private def prettyLines: List[String] = {
-    children.flatMap(_.prettyLines) match {
-      case List(childLine) => List(label + " " + childLine)
-      case childLines      => label :: childLines.map("  " + _)
+sealed abstract class AST[+A] {
+  val production = this match {
+    case ASTParent(head, children) => {
+      val products = children collect {
+        case ASTParent(label, _) => label
+      }
+      if(products.isEmpty) None
+      else Some(Production(head, products))
     }
+    case ASTLeaf(_) => None
+  }
+  val label: Option[A] = this match {
+    case ASTParent(head, _) => Some(head)
+    case _ => None
   }
 }
-
-/*
- * Most general AST designed to be produced by a CFG parser
- * TODO: implement internal nodes with a -nonempty- list of children.
- * For now, it's just enforced all of the time, but it'd be nicer to have it
- * done by type checking.
- */
-sealed abstract class BasicAST(val label: String) extends AST
-case class BasicASTInternal(
-  override val label: String,
-  val children: List[BasicAST]) extends BasicAST(label)
-case class BasicASTLeaf(override val label: String) extends BasicAST(label) {
-  override val children = Nil
-}
+// TODO children should be nonempty list.......maybe? actually maybe not!
+// depends on how I want to implement producing the empty string. if at all.
+// could either do it with child token "" or no child at all.
+case class ASTParent[A](head: A, children: List[AST[A]]) extends AST[A]
+case class ASTLeaf(token: String) extends AST[Nothing]
 
 /*
  * AST with only binary and unary productions (encoded in
  * the types) to be used in parsing a CNF* grammar.
  * Distinction is made between productions native to the
  * grammar and nonterminals that were chunked together by the
- * conversion from CFG to CNF grammar. We also have `undo`
- * which converts back to a BasicAST.
+ * conversion from CFG to CNF grammar. We also have `dechomskify`
+ * which converts back to AST.
  */
-sealed abstract class CNFGrammarAST extends AST {
-  def flattened: List[CNFGrammarAST]
-  def undo: Option[BasicAST]
-}
-case class CNFParent(
-  val cnfProduction: CNFProduction,
-  val children: List[CNFGrammarAST]) extends CNFGrammarAST {
-  def label = cnfProduction.label
-  lazy val flattened = cnfProduction match {
-    case ChunkedBinary(_, _, _) => children.flatMap(_.flattened)
-    case _                      => this :: Nil
+sealed abstract class CNFAST[+A] {
+  val flattened: List[CNFAST[A]] = this match {
+    case CNFChunkedParent(_, left, right) => left :: right.flattened
+    case _                         => this :: Nil
   }
-  lazy val undo = cnfProduction match {
-    case ChunkedBinary(_, _, _) => None
-    case _                      => Some(BasicASTInternal(label, children.flatMap(_.flattened).map(_.undo).flatten))
+  val dechomskify: Option[AST[A]] = this match {
+    case CNFChunkedParent(_, _, _) => None
+    case CNFBinaryParent(head, left, right) => {
+      val children = (left :: right.flattened).map(_.dechomskify).flatten
+      Some(ASTParent[A](head, children))
+    }
+    case CNFUnaryParent(head, child) => {
+      val children = child.flattened.map(_.dechomskify).flatten
+      Some(ASTParent[A](head, children))
+    }
+    case CNFLeaf(token) => {
+      Some(ASTLeaf(token))
+    }
+  }
+  val label: Option[CNFTag[A]] = this match {
+    case CNFChunkedParent(chunk, _, _) => Some(ChunkedTag[A](chunk))
+    case CNFBinaryParent(head, _, _) => Some(NormalTag[A](head))
+    case CNFUnaryParent(head, _) => Some(NormalTag[A](head))
+    case CNFLeaf(_) => None
   }
 }
-case class CNFLeaf(val label: String) extends CNFGrammarAST {
-  val children = Nil
-  val flattened = this :: Nil
-  val undo = Some(BasicASTLeaf(label))
-}
+case class CNFChunkedParent[A](chunk: List[A], left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
+case class CNFBinaryParent[A](head: A, left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
+case class CNFUnaryParent[A](head: A, child: CNFAST[A]) extends CNFAST[A]
+case class CNFLeaf(token: String) extends CNFAST[Nothing]
