@@ -10,7 +10,7 @@ import util.Memoize
 
 // The type parameter A is the type of symbol used in productions and ASTs. It
 // will typically be either String or Parsable[_].
-class Grammar[A](
+class ContextFreeGrammar[A](
   val productions: Set[Production[A]],
   val lexicalCategories: List[LexicalCategory[A]],
   val startSymbol: Option[A] = None) {
