@@ -1,6 +1,6 @@
 package parsing
 
-trait LexicalCategory[S] extends {
+trait LexicalCategory[S] {
   val subLexicon: (String => Boolean)
   val startSymbol: S
   // Lexical categories will always have this structure, looking like POS tags.
