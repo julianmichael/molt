@@ -116,10 +116,9 @@ case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
  * the grammar size just because we have a large vocabulary.
  */
 sealed trait SimpleParsable[A] extends Parsable[A] {
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] = Map()
+  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] =
+    Map()
 }
-
-
 
 class ParsableLexicalCategory(
   val subLexicon: (String => Boolean))
@@ -137,8 +136,3 @@ case class Terminal(symbol: String)
   extends ParsableLexicalCategory(Set(symbol)) {
   override val tokens = Set(symbol)
 }
-// Open lexical category, matching any string
-// TODO this should be given a more expressive name
-// XXX remove this
-case object Word
-  extends ParsableLexicalCategory((_ => true))
