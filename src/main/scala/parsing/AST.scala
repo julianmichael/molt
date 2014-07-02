@@ -1,26 +1,24 @@
 package parsing
 
-sealed abstract class AST[+A] {
+sealed abstract class AST[A] {
   val production = this match {
-    case ASTParent(head, children) => {
-      val products = children collect {
-        case ASTParent(label, _) => label
-      }
+    case ASTNonterminal(head, children) => {
+      val products = children.map(_.label)
       if(products.isEmpty) None
       else Some(Production(head, products))
     }
-    case ASTLeaf(_) => None
+    case ASTTerminal(_, _) => None
   }
-  val label: Option[A] = this match {
-    case ASTParent(head, _) => Some(head)
-    case _ => None
+  val label: A = this match {
+    case ASTNonterminal(head, _) => head
+    case ASTTerminal(head, _) => head
   }
 }
 // TODO children should be nonempty list.......maybe? actually maybe not!
 // depends on how I want to implement producing the empty string. if at all.
 // could either do it with child token "" or no child at all.
-case class ASTParent[A](head: A, children: List[AST[A]]) extends AST[A]
-case class ASTLeaf(token: String) extends AST[Nothing]
+case class ASTNonterminal[A](head: A, children: List[AST[A]]) extends AST[A]
+case class ASTTerminal[A](head: A, token: String) extends AST[A]
 
 /*
  * AST with only binary and unary productions (encoded in
@@ -30,33 +28,33 @@ case class ASTLeaf(token: String) extends AST[Nothing]
  * conversion from CFG to CNF grammar. We also have `dechomskify`
  * which converts back to AST.
  */
-sealed abstract class CNFAST[+A] {
+sealed abstract class CNFAST[A] {
   val flattened: List[CNFAST[A]] = this match {
-    case CNFChunkedParent(_, left, right) => left :: right.flattened
+    case CNFChunkedNonterminal(_, left, right) => left :: right.flattened
     case _                         => this :: Nil
   }
   val dechomskify: Option[AST[A]] = this match {
-    case CNFChunkedParent(_, _, _) => None
-    case CNFBinaryParent(head, left, right) => {
+    case CNFChunkedNonterminal(_, _, _) => None
+    case CNFBinaryNonterminal(head, left, right) => {
       val children = (left :: right.flattened).map(_.dechomskify).flatten
-      Some(ASTParent[A](head, children))
+      Some(ASTNonterminal[A](head, children))
     }
-    case CNFUnaryParent(head, child) => {
+    case CNFUnaryNonterminal(head, child) => {
       val children = child.flattened.map(_.dechomskify).flatten
-      Some(ASTParent[A](head, children))
+      Some(ASTNonterminal[A](head, children))
     }
-    case CNFLeaf(token) => {
-      Some(ASTLeaf(token))
+    case CNFTerminal(head, token) => {
+      Some(ASTTerminal[A](head, token))
     }
   }
-  val label: Option[CNFTag[A]] = this match {
-    case CNFChunkedParent(chunk, _, _) => Some(ChunkedTag[A](chunk))
-    case CNFBinaryParent(head, _, _) => Some(NormalTag[A](head))
-    case CNFUnaryParent(head, _) => Some(NormalTag[A](head))
-    case CNFLeaf(_) => None
+  val label: CNFTag[A] = this match {
+    case CNFChunkedNonterminal(chunk, _, _) => ChunkedTag[A](chunk)
+    case CNFBinaryNonterminal(head, _, _) => NormalTag[A](head)
+    case CNFUnaryNonterminal(head, _) => NormalTag[A](head)
+    case CNFTerminal(head, _) => NormalTag[A](head)
   }
 }
-case class CNFChunkedParent[A](chunk: List[A], left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
-case class CNFBinaryParent[A](head: A, left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
-case class CNFUnaryParent[A](head: A, child: CNFAST[A]) extends CNFAST[A]
-case class CNFLeaf(token: String) extends CNFAST[Nothing]
+case class CNFChunkedNonterminal[A](chunk: List[A], left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
+case class CNFBinaryNonterminal[A](head: A, left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
+case class CNFUnaryNonterminal[A](head: A, child: CNFAST[A]) extends CNFAST[A]
+case class CNFTerminal[A](head: A, token: String) extends CNFAST[A]

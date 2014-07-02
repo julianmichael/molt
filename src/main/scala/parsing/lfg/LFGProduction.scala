@@ -2,7 +2,7 @@ package parsing.lfg
 
 import parsing.Production
 
-class LFGProduction[+A](
+case class LFGProduction[+A](
   head: A,
   children: List[(A, List[Equation[RelativeIdentifier]])]) {
 

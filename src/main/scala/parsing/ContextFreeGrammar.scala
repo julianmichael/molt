@@ -38,7 +38,7 @@ class ContextFreeGrammar[A](
           (for {
             category <- lexicalCategories
             if category.subLexicon(tok)
-          } yield CNFUnaryParent[A](category.startSymbol, CNFLeaf(tok))).toSet
+          } yield CNFTerminal[A](category.startSymbol, tok)).toSet
         } else { // binary
           // pivotPairs: a list of all of the pairs of table cells that could correspond
           // to the children of the current table cell
@@ -49,22 +49,14 @@ class ContextFreeGrammar[A](
             val leftCell = recurse(pair._1)
             val rightCell = recurse(pair._2)
             def getBinaryEntries(label: CNFTag[A], left: CNFTag[A], right: CNFTag[A]) = {
-              val validLeftEntries = for {
-                cnfAst <- leftCell
-                tag <- cnfAst.label
-                if tag == left
-              } yield cnfAst
-              val validRightEntries = for {
-                cnfAst <- rightCell
-                tag <- cnfAst.label
-                if tag == right
-              } yield cnfAst
+              val validLeftEntries = leftCell.filter(_.label == left)
+              val validRightEntries = rightCell.filter(_.label == right)
               val rootEntries: Set[CNFAST[A]] = for {
                 l <- validLeftEntries
                 r <- validRightEntries
               } yield label match {
-                case NormalTag(name) => CNFBinaryParent[A](name, l, r)
-                case ChunkedTag(list) => CNFChunkedParent[A](list, l, r)
+                case NormalTag(name) => CNFBinaryNonterminal[A](name, l, r)
+                case ChunkedTag(list) => CNFChunkedNonterminal[A](list, l, r)
               }
               rootEntries
             }
@@ -90,13 +82,9 @@ class ContextFreeGrammar[A](
         else {
           val unaryEntries: Set[CNFAST[A]] = cnfProductions.flatMap {
             case Unary(NormalTag(label), child) => {
-              val validEntries = for {
-                cnfAst <- entries
-                tag <- cnfAst.label
-                if tag == child
-              } yield cnfAst
+              val validEntries = entries.filter(_.label == child)
               val rootEntries: Set[CNFAST[A]] =
-                validEntries.map(x => CNFUnaryParent[A](label, x))
+                validEntries.map(x => CNFUnaryNonterminal[A](label, x))
               rootEntries
             }
             case _ => Set[CNFAST[A]]()
@@ -112,11 +100,7 @@ class ContextFreeGrammar[A](
     val validParses = topCell.map(_.dechomskify).flatten
     val validProperlyStartingParses = startSymbol match {
       case None => validParses
-      case Some(sym) => for {
-        ast <- validParses
-        tag <- ast.label
-        if tag == sym
-      } yield ast
+      case Some(sym) => validParses.filter(_.label == sym)
     }
     validProperlyStartingParses
   }

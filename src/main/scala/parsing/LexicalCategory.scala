@@ -7,7 +7,7 @@ trait LexicalCategory[S] {
   // So even individual terminal symbols will get their own POS-tag type things.
   // I think this makes sense.
   def fromAST(ast: AST[S]): Option[String] = ast match {
-    case ASTParent(`startSymbol`, List(ASTLeaf(str))) if subLexicon(str) =>
+    case ASTTerminal(`startSymbol`, str) if subLexicon(str) =>
       Some(str)
     case _ => None
   }

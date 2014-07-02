@@ -81,13 +81,12 @@ sealed trait Parsable[A] {
  */
 trait ComplexParsable[A] extends Parsable[A] {
   final def fromAST(ast: AST[Parsable[_]]): Option[A] = ast match {
-    case ASTParent(_, children) =>
-      for {
-        p <- ast.production
-        func <- processedSynchronousProductions.get(p)
-        item <- func(children)
-      } yield item
-    case ASTLeaf(_) => None
+    case ASTNonterminal(_, children) => for {
+      p <- ast.production
+      func <- {println(s"p: $p"); processedSynchronousProductions.get(p)}
+      item <- {println(s"func: $func"); func(children)}
+    } yield {println(s"item: $item"); item}
+    case _ => None
   }
 }
 
@@ -124,11 +123,13 @@ class ParsableLexicalCategory(
   val subLexicon: (String => Boolean))
   extends LexicalCategory[Parsable[_]] with SimpleParsable[String] {
   override val startSymbol = this
+  /*
   override def fromAST(ast: AST[Parsable[_]]): Option[String] = ast match {
-    case ASTParent(`startSymbol`, List(ASTLeaf(str))) if subLexicon(str) =>
+    case ASTTerminal(`startSymbol`, str) if subLexicon(str) =>
       Some(str)
     case _ => None
   }
+  */
 }
 
 // lexical category consisting only of one string
