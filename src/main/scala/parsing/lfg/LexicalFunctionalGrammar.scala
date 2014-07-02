@@ -13,7 +13,7 @@ class LexicalFunctionalGrammar[A](
   private[this] val cfGrammar =
     new ContextFreeGrammar[A](cfgProductions, cfgLexicalCategories.toList, startSymbol)
 
-  private[this] val productionToSetsOfEquations = productions.groupBy(_.cfgProduction).map {
+  private[this] val productionToSetOfEquations = productions.groupBy(_.cfgProduction).map {
     case (k, lfgProductions) => (k, lfgProductions.map {
       case LFGProduction(_, eqs) => eqs
     })
@@ -21,9 +21,20 @@ class LexicalFunctionalGrammar[A](
 
   def parseTokens(tokens: List[String]): Set[FStructure] = {
     val asts = cfGrammar.parseTokens(tokens)
-    def annotate(ast: AST[A]): AST[(A, List[Equation[RelativeIdentifier]])] = {
-      ???
+    /* coming soon
+    def annotations(ast: AST[A]): Set[AST[(A, List[Equation[RelativeIdentifier]])]] = ast match {
+      case ASTNonterminal(head, children) => {
+        val cfgProduction = Production(head, children.map(_.label))
+        val equations = productionToSetOfEquations(cfgProduction)
+        val childrenAnnotationSets = children.map(annotations _)
+        for {
+          eq <- equations
+          // TODO all combinations of annotations of all children
+          childrenAnnotation <- allChildrenAnnotations
+        } yield ASTNonterminal((head, eq), )
+      }
     }
+    */
     ???
   }
 }

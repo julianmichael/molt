@@ -1,14 +1,6 @@
 package parsing
 
 sealed abstract class AST[A] {
-  val production = this match {
-    case ASTNonterminal(head, children) => {
-      val products = children.map(_.label)
-      if(products.isEmpty) None
-      else Some(Production(head, products))
-    }
-    case ASTTerminal(_, _) => None
-  }
   val label: A = this match {
     case ASTNonterminal(head, _) => head
     case ASTTerminal(head, _) => head

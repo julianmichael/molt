@@ -81,11 +81,11 @@ sealed trait Parsable[A] {
  */
 trait ComplexParsable[A] extends Parsable[A] {
   final def fromAST(ast: AST[Parsable[_]]): Option[A] = ast match {
-    case ASTNonterminal(_, children) => for {
-      p <- ast.production
-      func <- {println(s"p: $p"); processedSynchronousProductions.get(p)}
-      item <- {println(s"func: $func"); func(children)}
-    } yield {println(s"item: $item"); item}
+    case ASTNonterminal(head, children) => for {
+      p <- Some(Production(head, children.map(_.label)))
+      func <- processedSynchronousProductions.get(p)
+      item <- func(children)
+    } yield item
     case _ => None
   }
 }
