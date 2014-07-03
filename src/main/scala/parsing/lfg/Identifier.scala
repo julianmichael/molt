@@ -6,4 +6,4 @@ sealed abstract class RelativeIdentifier extends Identifier
 case object Up extends RelativeIdentifier
 case object Down extends RelativeIdentifier
 
-class AbsoluteIdentifier(id: String) extends Identifier
+case class AbsoluteIdentifier(id: String) extends Identifier

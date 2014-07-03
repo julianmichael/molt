@@ -2,7 +2,7 @@ package parsing.lfg
 
 import parsing.LexicalCategory
 
-class LFGLexicalCategory[S](
+case class LFGLexicalCategory[S](
   lexicalEntries: Set[LexicalEntry],
   symbol: S) {
 
