@@ -1,5 +1,33 @@
 package parsing.lfg
 
+/*
+ * Here is how I think I must do the solution:
+ * 
+ * I introduce a new type, which is an F-Structure with no nested structure.
+ * Instead, where any other F-Structure would appear, it only has a "name."
+ *
+ * I maintain:
+ *  - A map from "names" (unique identifiers) to instance of my new F-Structure
+ *  - A set of equivalence classes of names, telling me which are identified
+ *    with each other.
+ *
+ * The processing of a defining equation proceeds as follows:
+ *   First, I "instantiate" each expression, by giving every single substructure
+ * a NEW UNIQUE NAME, and mapping that name in my map to something that
+ * represents its minimal structure (with respect to other names).
+ *   Then, the "equation" is enforced by placing the names representing the
+ * values of both expressions into the same equivalence class.
+ *   Finally---and this is the part I'm not totally sure of---the changed
+ * equivalence classes should be "unifed." All of the F-Structures referred to
+ * in them should be made the same. If the F-Structures contain names, the
+ * corresponding names should be unified into the same equivalence class and
+ * unification should be performed on that class as well. If any of this causes
+ * a violation of Uniqueness, we can stop altogether and return a failure.
+ *
+ * The equivalence class data structure COULD be implemented using union-find.
+ * That is, if there exists a functional union-find data structure...
+ */
+
 object Solution {
   case class SolutionPart(
     names: Set[AbsoluteIdentifier],
@@ -62,53 +90,3 @@ object Solution {
     solvePartial(fdesc)(emptySolution)
   }
 }
-/*
-case class PartialSolution(
-  map: Map[AbsoluteIdentifier, FStructure],
-  remainingFDescription: FDescription,
-  assignments: Set[Assignment[AbsoluteIdentifier]]) {
-
-  sealed abstract class GetResult
-  case class Item(fstruct: FStructure) extends GetResult
-  case object Empty extends GetResult
-  case object Invalid extends GetResult
-
-  val definingEqs = remainingFDescription collect { case Defining(eq) => eq }
-  val compoundEqs = remainingFDescription collect { case Compound(eq) => eq }
-  val constraintEqs = remainingFDescription collect { case Constraint(eq) => eq }
-
-  def get(exp: Expression[AbsoluteIdentifier]): GetResult = exp match {
-    case IdentifierExpression(AbsoluteIdentifier(id)) => Item(map(id))
-    case Application(appl, feature) => appl match {
-      case FMapping(mapping) => mapping.get(feature) match {
-        case Some(fstruct) => Item(fstruct)
-        case None => Empty
-      }
-      case _ => Invalid
-    }
-    case _ => Invalid
-  }
-
-  def updateRefsForAssignment(
-    exp1: Expression[AbsoluteIdentifier],
-    exp2: Expression[AbsoluteIdentifier]): Option[PartialSolution] = {
-      def unifyIDs(id1: AbsoluteIdentifier, id2: AbsoluteIdentifier): Option[PartialSolution = {
-        (map(id1).deepest, map(id2).deepest) match {
-          case (x@FRef(None), y@FRef(None)) => {
-            val newRef = FRef(None)
-            x.nested = y.nested = Some(newRef)
-            Some(this)
-          }
-          case (
-        }
-      }
-      (exp1, exp2) match {
-      case (IdentifierExpression(id1), IdentifierExpression(id2)) =>
-
-      case (IdentifierExpression(id1), 
-
-      case _ => ???
-    }
-  }
-    
-}*/
