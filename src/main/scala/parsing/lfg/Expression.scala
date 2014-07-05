@@ -14,6 +14,5 @@ case class IdentifierExpression[ID <: Identifier](id: ID)
   extends Expression[ID]
 case class Application[ID <: Identifier](exp: Expression[ID], feature: Feature)
   extends Expression[ID]
-// TODO make it so I don't need the type parameter on this dude
 case class ValueExpression(v: Value)
   extends Expression[Nothing]
