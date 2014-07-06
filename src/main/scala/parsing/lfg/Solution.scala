@@ -30,7 +30,7 @@ package parsing.lfg
  */
 
 // for union-find data structure
-import parsing.util._
+import util._
 
 object Solution {
   sealed abstract class FStructurePart

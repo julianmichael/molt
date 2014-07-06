@@ -1,4 +1,4 @@
-package parsing.util
+package util
 
 // trait extended by all (mutable and immutable) union-find data structures
 trait UnionFind[A] {
