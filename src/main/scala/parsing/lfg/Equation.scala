@@ -12,6 +12,11 @@ sealed abstract class Equation[ID <: Identifier] {
     case Defining(de) => Defining(de.ground(up, down))
     case Constraint(ce) => Constraint(ce.ground(up, down))
   }
+  def identifiers: Set[ID] = this match {
+    case Compound(ce) => ce.identifiers
+    case Defining(de) => de.identifiers
+    case Constraint(ce) => ce.identifiers
+  }
 }
 
 case class Compound[ID <: Identifier](
@@ -34,6 +39,10 @@ sealed abstract class CompoundEquation[ID <: Identifier] {
     case Disjunction(l, r) => Disjunction(l.ground(up, down), r.ground(up, down))
     case Conjunction(l, r) => Conjunction(l.ground(up, down), r.ground(up, down))
   }
+  def identifiers: Set[ID] = this match {
+    case Disjunction(l, r) => l.identifiers ++ r.identifiers
+    case Conjunction(l, r) => l.identifiers ++ r.identifiers
+  }
 }
 case class Disjunction[ID <: Identifier](
   left: Equation[ID], right: Equation[ID])
@@ -51,6 +60,10 @@ sealed abstract class DefiningEquation[ID <: Identifier] {
     (implicit evidence: ID <:< RelativeIdentifier): DefiningEquation[AbsoluteIdentifier] = this match {
     case Assignment(l, r) => Assignment(l.ground(up, down), r.ground(up, down))
     case Containment(e, c) => Containment(e.ground(up, down), c.ground(up, down))
+  }
+  def identifiers: Set[ID] = this match {
+    case Assignment(l, r) => l.identifiers ++ r.identifiers
+    case Containment(e, c) => e.identifiers ++ c.identifiers
   }
 }
 case class Assignment[ID <: Identifier](
@@ -71,6 +84,11 @@ sealed abstract class ConstraintEquation[ID <: Identifier] {
     case Equals(pos, l, r) => Equals(pos, l.ground(up, down), r.ground(up, down))
     case Contains(pos, e, c) => Contains(pos, e.ground(up, down), c.ground(up, down))
     case Exists(pos, e) => Exists(pos, e.ground(up, down))
+  }
+  def identifiers: Set[ID] = this match {
+    case Equals(pos, l, r) => l.identifiers ++ r.identifiers
+    case Contains(pos, e, c) =>  e.identifiers ++ c.identifiers
+    case Exists(pos, e) => e.identifiers
   }
 }
 case class Equals[ID <: Identifier](

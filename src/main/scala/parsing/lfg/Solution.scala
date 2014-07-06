@@ -25,34 +25,46 @@ package parsing.lfg
  * a violation of Uniqueness, we can stop altogether and return a failure.
  *
  * The equivalence class data structure COULD be implemented using union-find.
- * That is, if there exists a functional union-find data structure...
+ * It'd probably be best that way. TODO: implement persistent union-find data
+ * structure from (Conchon and Filliatre, 2007).
  */
 
+// for union-find data structure
+import parsing.util._
+
 object Solution {
-  case class SolutionPart(
+  sealed abstract class FStructurePart
+  case object Empty extends FStructurePart
+  case class SolutionFMapping(map: Map[Feature, AbsoluteIdentifier]) extends FStructurePart
+  case class SolutionFSet(set: Set[AbsoluteIdentifier]) extends FStructurePart
+  case class SolutionFValue(v: Value) extends FStructurePart
+  case class SolutionFSemanticForm(s: SemanticForm) extends FStructurePart
+
+  case class PartialSolution(
     names: Set[AbsoluteIdentifier],
-    struct: Option[SolutionFStructure])
-  sealed abstract class SolutionFStructure
-  case class SolutionFMapping(map: Map[Feature, SolutionPart]) extends SolutionFStructure
-  case class SolutionFSet(set: Set[SolutionPart]) extends SolutionFStructure
-  case class SolutionFValue(v: Value) extends SolutionFStructure
-  case class SolutionFSemanticForm(s: SemanticForm) extends SolutionFStructure
+    nameGroups: SetUnionFind[AbsoluteIdentifier],
+    nameMap: Map[AbsoluteIdentifier, FStructurePart]) {
 
-  type PartialSolution = Set[SolutionPart]
-  private[this] val emptySolution = Set[SolutionPart]()
+    def addDefine(eq: DefiningEquation[AbsoluteIdentifier]): Set[PartialSolution] = {
+      ???
+    }
 
-  def addDefine(eq: DefiningEquation[AbsoluteIdentifier])
-    (psol: PartialSolution): Set[PartialSolution] = {
-    ???
+    def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier]): Set[PartialSolution] = {
+      ???
+    }
+
+    def fStructure: FStructure = {
+      ???
+    }
   }
-
-  def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier])
-    (psol: PartialSolution): Set[PartialSolution] = {
-    ???
-  }
-
-  def makeFStructure(psol: PartialSolution): FStructure = {
-    ???
+  object PartialSolution {
+    // to make sure we don't use names that are already taken in the f-description
+    def empty(fdesc: FDescription): PartialSolution = {
+      val names = fdesc.flatMap(_.identifiers)
+      val unionFind = names.foldLeft(SetUnionFind.empty[AbsoluteIdentifier])(_ add _)
+      val nameMap = names.map({ case id => (id -> (Empty: FStructurePart)) }).toMap
+      PartialSolution(names, unionFind, nameMap)
+    }
   }
 
   def solvePartial(fdesc: FDescription)(psol: PartialSolution): Set[FStructure] = {
@@ -63,7 +75,7 @@ object Solution {
     definingEqs.headOption match {
       // first, find the minimal f-structure satisfying the non-compound defining equations
       case Some(head) => {
-        addDefine(head)(psol) flatMap solvePartial(fdesc - Defining(head))
+        psol.addDefine(head) flatMap solvePartial(fdesc - Defining(head))
       }
       // no more defining equations left, so process compound equations. We
       // delayed the branching until now for efficiency. Recurse because some of
@@ -77,16 +89,16 @@ object Solution {
         // no more compound equations left, so verify that the constraints hold
         case None => constraintEqs.headOption match {
           case Some(head) => {
-            verifyConstraint(head)(psol) flatMap solvePartial(fdesc - Constraint(head))
+            psol.verifyConstraint(head) flatMap solvePartial(fdesc - Constraint(head))
           }
           // all equations processed: we're done!
-          case None => Set(makeFStructure(psol))
+          case None => Set(psol.fStructure)
         }
       }
     }
   }
 
   def solve(fdesc: FDescription): Set[FStructure] = {
-    solvePartial(fdesc)(emptySolution)
+    solvePartial(fdesc)(PartialSolution.empty(fdesc))
   }
 }
