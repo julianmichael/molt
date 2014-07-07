@@ -10,4 +10,4 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.0.6"
 )
 
-scalacOptions ++= Seq("-feature")
+scalacOptions ++= Seq("-feature", "-language:higherKinds")

@@ -31,6 +31,8 @@ package parsing.lfg
 
 // for union-find data structure
 import util._
+import scalaz._
+import Scalaz._
 
 object Solution {
   sealed abstract class FStructurePart
@@ -43,20 +45,122 @@ object Solution {
   case class PartialSolution(
     names: Set[AbsoluteIdentifier],
     nameGroups: SetUnionFind[AbsoluteIdentifier],
-    nameMap: Map[AbsoluteIdentifier, FStructurePart]) {
+    nameMap: Map[AbsoluteIdentifier, FStructurePart])
 
-    def addDefine(eq: DefiningEquation[AbsoluteIdentifier]): Set[PartialSolution] = {
-      ???
-    }
+  // transformer to be used with liftM
+  type SolutionStateT[M[+_], A] = StateT[M, PartialSolution, A]
+  // solution state monad to represent the branching computation
+  type SolutionState[A] = SolutionStateT[List, A]
+  // convenience because we're always working in the same monad here
+  val get: SolutionState[PartialSolution] = State.get[PartialSolution].lift[List]
+  def put(x: PartialSolution): SolutionState[Unit] = State.put(x).lift[List]
+  val failure = Nil.liftM[SolutionStateT]
 
-    def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier]): Set[PartialSolution] = {
-      ???
-    }
+  val freshID: SolutionState[AbsoluteIdentifier] = for {
+    psol <- get
+    fresh = AbsoluteIdentifier.freshID(psol.names)
+    _ <- put(psol.copy(names = psol.names + fresh))
+  } yield fresh
 
-    def fStructure: FStructure = {
-      ???
+  def addMapping(id: AbsoluteIdentifier, fstruct: FStructurePart): SolutionState[Unit] = for {
+    psol <- get
+    newMap = psol.nameMap + (id -> fstruct)
+    _ <- put(psol.copy(nameMap = newMap))
+  } yield ()
+
+  def getRepresentativeID(id: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] = for {
+    psol <- get
+  } yield psol.nameGroups.find(id).get
+
+  def getFStruct(id: AbsoluteIdentifier): SolutionState[FStructurePart] = for {
+    psol <- get
+    rep <- getRepresentativeID(id)
+  } yield psol.nameMap(rep)
+
+  def equateIDs(
+      id1: AbsoluteIdentifier,
+      id2: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] = for {
+    psol <- get
+    uf = psol.nameGroups
+    newUF = uf.union(id1, id2).get
+    _ <- put(psol.copy(nameGroups = newUF))
+    rep <- getRepresentativeID(id1)
+  } yield rep
+
+  def unifyIDs(
+      id1: AbsoluteIdentifier,
+      id2: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] =
+    // "if" to mitigate unnecessary corecursion
+    if(id1 == id2) state(id1).lift[List]
+    else for {
+      fstruct1 <- getFStruct(id1)
+      fstruct2 <- getFStruct(id2)
+      newFStruct <- unifyFStructs(fstruct1, fstruct2)
+      newID <- equateIDs(id1, id2)
+      _ <- addMapping(newID, newFStruct)
+    } yield newID
+
+  def unifyFStructs(one: FStructurePart, two: FStructurePart): SolutionState[FStructurePart] = {
+    // "if" to mitigate unnecessary corecursion
+    if(one == two) state(one).lift[List]
+    else (one, two) match {
+      case (Empty, x) => state(x).lift[List]
+      case (x, Empty) => state(x).lift[List]
+      case (SolutionFMapping(m1), SolutionFMapping(m2)) => {
+        val fmapping = m1 ++ m2
+        val keys = fmapping.keys
+        val unities = keys.map(k => unifyIDs(m1(k), m2(k)))
+        for {
+          _ <- unities.reduce((x, y) => (for {_ <- x; b <- y} yield b))
+        } yield SolutionFMapping(fmapping)
+      }
+      case (SolutionFSet(s1), SolutionFSet(s2)) =>
+        state(SolutionFSet(s1 ++ s2)).lift[List]
+      case (SolutionFValue(v1), SolutionFValue(v2)) if(v1 == v2) =>
+        state(SolutionFValue(v1)).lift[List]
+      case (SolutionFSemanticForm(s1), SolutionFSemanticForm(s2)) if(s1 == s2) =>
+        state(SolutionFSemanticForm(s1)).lift[List]
+      // THIS CASE is where violations of Uniqueness cause failure!
+      case _ => failure
     }
   }
+
+  def makeExpression(exp: Expression[AbsoluteIdentifier]): SolutionState[AbsoluteIdentifier] =
+    exp match {
+      case IdentifierExpression(id) => state(id).lift[List]
+      case Application(e, feat) => for {
+        id <- freshID
+        subExpressionID <- makeExpression(e)
+        // the subexpression maps to the total expression via the feature
+        _ <- addMapping(subExpressionID, SolutionFMapping(Map(feat -> id)))
+      } yield id
+      case ValueExpression(v) => for {
+        id <- freshID
+        _ <- addMapping(id, SolutionFValue(v))
+      } yield id
+    }
+
+  def addDefine(eq: DefiningEquation[AbsoluteIdentifier]): SolutionState[Unit] = eq match {
+    case Assignment(l, r) => for {
+      leftID <- makeExpression(l)
+      rightID <- makeExpression(r)
+      _ <- unifyIDs(leftID, rightID)
+    } yield ()
+    case Containment(e, c) => for {
+      elemID <- makeExpression(e)
+      contID <- makeExpression(c)
+      _ <- addMapping(contID, SolutionFSet(Set(elemID)))
+    } yield ()
+  }
+
+  def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier]): SolutionState[Unit] = eq match {
+    case _ => ???
+  }
+
+  def makeFStructure: SolutionState[FStructure] = {
+    ???
+  }
+
   object PartialSolution {
     // to make sure we don't use names that are already taken in the f-description
     def empty(fdesc: FDescription): PartialSolution = {
@@ -67,38 +171,42 @@ object Solution {
     }
   }
 
-  def solvePartial(fdesc: FDescription)(psol: PartialSolution): Set[FStructure] = {
+  def solvePartial(fdesc: FDescription): SolutionState[FStructure] = {
     val definingEqs = fdesc collect { case Defining(eq) => eq }
     val compoundEqs = fdesc collect { case Compound(eq) => eq }
     val constraintEqs = fdesc collect { case Constraint(eq) => eq }
 
     definingEqs.headOption match {
       // first, find the minimal f-structure satisfying the non-compound defining equations
-      case Some(head) => {
-        psol.addDefine(head) flatMap solvePartial(fdesc - Defining(head))
-      }
+      case Some(head) => for {
+        _ <- addDefine(head)
+        sol <- solvePartial(fdesc - Defining(head))
+      } yield sol
       // no more defining equations left, so process compound equations. We
       // delayed the branching until now for efficiency. Recurse because some of
       // the inner equations may be defining equations.
       case None => compoundEqs.headOption match {
         case Some(head@Conjunction(l, r)) =>
-          solvePartial(fdesc - Compound(head) + l + r)(psol)
-        case Some(head@Disjunction(l, r)) => 
-          solvePartial(fdesc - Compound(head) + l)(psol) ++
-          solvePartial(fdesc - Compound(head) + r)(psol)
+          solvePartial(fdesc - Compound(head) + l + r)
+        case Some(head@Disjunction(l, r)) => for {
+          // this is where the branching happens!
+          disjunct <- List[Equation[AbsoluteIdentifier]](l, r).liftM[SolutionStateT]
+          sol <- solvePartial(fdesc - Compound(head) + disjunct)
+        } yield sol
         // no more compound equations left, so verify that the constraints hold
         case None => constraintEqs.headOption match {
-          case Some(head) => {
-            psol.verifyConstraint(head) flatMap solvePartial(fdesc - Constraint(head))
-          }
-          // all equations processed: we're done!
-          case None => Set(psol.fStructure)
+          case Some(head) => for {
+            _ <- verifyConstraint(head)
+            sol <- solvePartial(fdesc - Constraint(head))
+          } yield sol
+          // all equations processed: we're done! return the final F-structure(s).
+          case None => makeFStructure
         }
       }
     }
   }
 
-  def solve(fdesc: FDescription): Set[FStructure] = {
-    solvePartial(fdesc)(PartialSolution.empty(fdesc))
+  def solve(fdesc: FDescription): List[FStructure] = {
+    solvePartial(fdesc).eval(PartialSolution.empty(fdesc))
   }
 }
