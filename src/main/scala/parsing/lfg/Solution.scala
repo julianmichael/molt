@@ -35,37 +35,38 @@ import scalaz._
 import Scalaz._
 
 object Solution {
-  sealed abstract class FStructurePart
-  case object Empty extends FStructurePart
-  case class SolutionFMapping(map: Map[Feature, AbsoluteIdentifier]) extends FStructurePart
-  case class SolutionFSet(set: Set[AbsoluteIdentifier]) extends FStructurePart
-  case class SolutionFValue(v: Value) extends FStructurePart
-  case class SolutionFSemanticForm(s: SemanticForm) extends FStructurePart
-
-  case class PartialSolution(
-    names: Set[AbsoluteIdentifier],
-    nameGroups: SetUnionFind[AbsoluteIdentifier],
-    nameMap: Map[AbsoluteIdentifier, FStructurePart])
+  type PartialSolution = (SetUnionFind[AbsoluteIdentifier], FStructure)
 
   // transformer to be used with liftM
-  type SolutionStateT[M[+_], A] = StateT[M, PartialSolution, A]
+  type SolutionStateT[M[+_], +A] = StateT[M, PartialSolution, A]
   // solution state monad to represent the branching computation
   type SolutionState[A] = SolutionStateT[List, A]
   // convenience because we're always working in the same monad here
   val get: SolutionState[PartialSolution] = State.get[PartialSolution].lift[List]
+  val getGroups: SolutionState[SetUnionFind[AbsoluteIdentifier]] = get flatMap (_._1)
+  val getFStructure: SolutionState[FStructure] = get flatMap (_._2)
+  val getNames: SolutionState[Set[AbsoluteIdentifier]] = for {
+    FStructure(map, _) <- getFStructure
+  } yield map.keys.toSet
   def put(x: PartialSolution): SolutionState[Unit] = State.put(x).lift[List]
-  val failure = Nil.liftM[SolutionStateT]
+  def putGroups(x: SetUnionFind[AbsoluteIdentifier]]): SolutionState[Unit] = for {
+    psol <- get
+    _ <- put(psol.copy(_1 = x))
+  } yield ()
+  def putFStructure(x: FStructure): SolutionState[Unit] = for {
+    psol <- get
+    _ <- put(psol.copy(_2 = x))
+  } yield ()
+  val failure: SolutionState[Nothing] = List[Nothing]().liftM[SolutionStateT]
 
   val freshID: SolutionState[AbsoluteIdentifier] = for {
-    psol <- get
-    fresh = AbsoluteIdentifier.freshID(psol.names)
-    _ <- put(psol.copy(names = psol.names + fresh))
-  } yield fresh
+    names <- getNames
+  } yield AbsoluteIdentifier.freshID(names)
 
   def addMapping(id: AbsoluteIdentifier, fstruct: FStructurePart): SolutionState[Unit] = for {
     psol <- get
-    newMap = psol.nameMap + (id -> fstruct)
-    _ <- put(psol.copy(nameMap = newMap))
+    newMap = psol.fStructure.map + (id -> fstruct)
+    _ <- put(psol.copy(fStructure = psol.fStructure.copy(map = newMap)))
   } yield ()
 
   def getRepresentativeID(id: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] = for {
@@ -86,6 +87,8 @@ object Solution {
     _ <- put(psol.copy(nameGroups = newUF))
     rep <- getRepresentativeID(id1)
   } yield rep
+
+  // end "pure convenience" methods, begin functionality
 
   def unifyIDs(
       id1: AbsoluteIdentifier,
@@ -153,13 +156,66 @@ object Solution {
     } yield ()
   }
 
-  def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier]): SolutionState[Unit] = eq match {
-    case _ => ???
+  def testExpression(
+      exp: Expression[AbsoluteIdentifier]): SolutionState[AbsoluteIdentifier] = exp match {
+    case IdentifierExpression(id) => for {
+      rep <- getRepresentativeID(id)
+    } yield rep
+    case Application(e, feat) => for {
+      subID <- testExpression(e)
+      // TODO figure out why filter doesn't work here
+      fstruct <- getFStruct(subID)
+      mapState: SolutionState[Map[Feature, AbsoluteIdentifier]] = fstruct match {
+        case SolutionFMapping(m) => state(m).lift[List]
+        case _ => failure
+      }
+      map <- mapState
+      expID <- getRepresentativeID(map(feat)) 
+    } yield expID
+    case ValueExpression(v) => for {
+      // TODO get all rep. IDs that map to this value
+      psol <- get
+      map = psol.nameMap
+      ids = map collect { case (k, SolutionFValue(`v`)) => k }
+      id <- ids.toList.liftM[SolutionStateT]
+      rep <- getRepresentativeID(id)
+    } yield rep
   }
 
-  def makeFStructure: SolutionState[FStructure] = {
-    ???
+  def verifyConstraint(eq: ConstraintEquation[AbsoluteIdentifier]): SolutionState[Boolean] = eq match {
+    case Equals(pos, l, r) => for {
+      leftID <- testExpression(l)
+      rightID <- testExpression(r)
+      leftRep <- getRepresentativeID(leftID)
+      rightRep <- getRepresentativeID(rightID)
+    } yield (pos == (leftRep == rightRep))
+    case Contains(pos, e, c) => for {
+      elemID <- testExpression(e)
+      contID <- testExpression(c)
+      elemRep <- getRepresentativeID(elemID)
+      contStruct <- getFStruct(contID)
+      set <- contStruct match {
+        case SolutionFSet(s) => s.toList.map(getRepresentativeID(_)).sequence.map(_.toSet)
+        case _ => failure
+      }
+    } yield (pos == (set(elemRep)))
+    case Exists(pos, e) => ???
+    // TODO this case is evidence that I need to revise my approach for this
+    // function :(
   }
+
+  def makeFStructure(rootID: AbsoluteIdentifier): SolutionState[FStructure] = for {
+    solFStruct <- getFStruct(rootID)
+    fStruct <- solFStruct match {
+      case Empty => failure
+      case SolutionFMapping(map) => {
+        ???
+      }
+      case SolutionFSet(set) => ???
+      case SolutionFValue(v) => ???
+      case SolutionFSemanticForm(s) => ???
+    }
+  } yield fStruct
 
   object PartialSolution {
     // to make sure we don't use names that are already taken in the f-description
@@ -196,11 +252,11 @@ object Solution {
         // no more compound equations left, so verify that the constraints hold
         case None => constraintEqs.headOption match {
           case Some(head) => for {
-            _ <- verifyConstraint(head)
-            sol <- solvePartial(fdesc - Constraint(head))
+            satisfied <- verifyConstraint(head)
+            sol <- if(satisfied) solvePartial(fdesc - Constraint(head)) else failure
           } yield sol
           // all equations processed: we're done! return the final F-structure(s).
-          case None => makeFStructure
+          case None => makeFStructure(???) // TODO should be the root ID
         }
       }
     }
