@@ -49,13 +49,13 @@ object Solution {
   type SolutionState[A] = SolutionStateT[List, A]
   // convenience because we're always working in the same monad here
   val get: SolutionState[PartialSolution] = State.get[PartialSolution].lift[List]
-  val getGroups: SolutionState[SetUnionFind[AbsoluteIdentifier]] = get flatMap (_._1)
-  val getFStructure: SolutionState[FStructure] = get flatMap (_._2)
+  val getGroups: SolutionState[SetUnionFind[AbsoluteIdentifier]] = get map (_._1)
+  val getFStructure: SolutionState[FStructure] = get map (_._2)
   val getNames: SolutionState[Set[AbsoluteIdentifier]] = for {
     FStructure(map, _) <- getFStructure
   } yield map.keys.toSet
   def put(x: PartialSolution): SolutionState[Unit] = State.put(x).lift[List]
-  def putGroups(x: SetUnionFind[AbsoluteIdentifier]]): SolutionState[Unit] = for {
+  def putGroups(x: SetUnionFind[AbsoluteIdentifier]): SolutionState[Unit] = for {
     psol <- get
     _ <- put(psol.copy(_1 = x))
   } yield ()
@@ -66,7 +66,7 @@ object Solution {
   val failure: SolutionState[Nothing] = List[Nothing]().liftM[SolutionStateT]
 
   val freshID: SolutionState[AbsoluteIdentifier] =
-    getNames flatMap (AbsoluteIdentifier.freshID(_))
+    getNames map (AbsoluteIdentifier.freshID(_))
 
   def addMapping(id: AbsoluteIdentifier, fstruct: FStructurePart): SolutionState[Unit] = for {
     fStructure <- getFStructure
@@ -75,7 +75,7 @@ object Solution {
   } yield ()
 
   def getRepresentativeID(id: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] =
-    getGroups flatMap (_.find(id).get)
+    getGroups map (_.find(id).get)
 
   def getFStructurePart(id: AbsoluteIdentifier): SolutionState[FStructurePart] = for {
     FStructure(map, _) <- getFStructure
@@ -120,12 +120,12 @@ object Solution {
           _ <- unities.reduce((x, y) => (for {_ <- x; b <- y} yield b))
         } yield FMapping(fmapping)
       }
-      case (SolutionFSet(s1), SolutionFSet(s2)) =>
-        state(SolutionFSet(s1 ++ s2)).lift[List]
-      case (SolutionFValue(v1), SolutionFValue(v2)) if(v1 == v2) =>
-        state(SolutionFValue(v1)).lift[List]
-      case (SolutionFSemanticForm(s1), SolutionFSemanticForm(s2)) if(s1 == s2) =>
-        state(SolutionFSemanticForm(s1)).lift[List]
+      case (FSet(s1), FSet(s2)) =>
+        state(FSet(s1 ++ s2)).lift[List]
+      case (FValue(v1), FValue(v2)) if(v1 == v2) =>
+        state(FValue(v1)).lift[List]
+      case (FSemanticForm(s1), FSemanticForm(s2)) if(s1 == s2) =>
+        state(FSemanticForm(s1)).lift[List]
       // THIS CASE is where violations of Uniqueness cause failure!
       case _ => failure
     }
@@ -181,9 +181,8 @@ object Solution {
     } yield expID
     case ValueExpression(v) => for {
       // TODO get all rep. IDs that map to this value
-      psol <- get
-      map = psol.nameMap
-      ids = map collect { case (k, SolutionFValue(`v`)) => k }
+      FStructure(map, _) <- getFStructure
+      ids = map collect { case (k, FValue(`v`)) => k }
       id <- ids.toList.liftM[SolutionStateT]
       rep <- getRepresentativeID(id)
     } yield rep
@@ -201,9 +200,9 @@ object Solution {
       elemID <- testExpression(e)
       contID <- testExpression(c)
       elemRep <- getRepresentativeID(elemID)
-      contStruct <- getFStruct(contID)
+      contStruct <- getFStructurePart(contID)
       set <- contStruct match {
-        case SolutionFSet(s) => s.toList.map(getRepresentativeID(_)).sequence.map(_.toSet)
+        case FSet(s) => s.toList.map(getRepresentativeID(_)).sequence.map(_.toSet)
         case _ => failure
       }
     } yield (pos == (set(elemRep)))

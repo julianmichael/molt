@@ -1,6 +1,6 @@
 package parsing.lfg
 
-class FStructure(
+case class FStructure(
   map: Map[AbsoluteIdentifier, FStructurePart],
   root: AbsoluteIdentifier)
 
