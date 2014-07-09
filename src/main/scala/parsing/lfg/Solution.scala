@@ -163,6 +163,7 @@ object Solution {
     } yield ()
   }
 
+  // TODO make this work :(
   def testExpression(
       exp: Expression[AbsoluteIdentifier]): SolutionState[AbsoluteIdentifier] = exp match {
     case IdentifierExpression(id) => for {
@@ -170,7 +171,6 @@ object Solution {
     } yield rep
     case Application(e, feat) => for {
       subID <- testExpression(e)
-      // TODO figure out why filter doesn't work here
       fstruct <- getFStructurePart(subID)
       mapState: SolutionState[Map[Feature, AbsoluteIdentifier]] = fstruct match {
         case FMapping(m) => state(m).lift[List]
@@ -180,7 +180,6 @@ object Solution {
       expID <- getRepresentativeID(map(feat)) 
     } yield expID
     case ValueExpression(v) => for {
-      // TODO get all rep. IDs that map to this value
       FStructure(map, _) <- getFStructure
       ids = map collect { case (k, FValue(`v`)) => k }
       id <- ids.toList.liftM[SolutionStateT]
