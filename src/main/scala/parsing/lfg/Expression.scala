@@ -8,11 +8,13 @@ sealed abstract class Expression[ID <: Identifier] {
     case IdentifierExpression(x) if x == Down => IdentifierExpression(down)
     case Application(exp, feat) => Application(exp.ground(up, down), feat)
     case ValueExpression(v) => ValueExpression(v)
+    case SemanticFormExpression(s) => SemanticFormExpression(s)
   }
   def identifiers: Set[ID] = this match {
     case IdentifierExpression(x) => Set[ID](x)
     case Application(exp, feat) => exp.identifiers
-    case ValueExpression(v) => Set.empty[ID]
+    case ValueExpression(_) => Set.empty[ID]
+    case SemanticFormExpression(_) => Set.empty[ID]
   }
 }
 case class IdentifierExpression[ID <: Identifier](id: ID)
@@ -22,4 +24,6 @@ case class Application[ID <: Identifier](exp: Expression[ID], feature: Feature)
 // TODO perhaps manage to get rid of the type parameter here. ID can't be
 // covariant because "identifiers" returns a set, which is invariant in ID.
 case class ValueExpression[ID <: Identifier](v: Value)
+  extends Expression[ID]
+case class SemanticFormExpression[ID <: Identifier](s: SemanticForm)
   extends Expression[ID]

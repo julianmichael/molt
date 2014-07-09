@@ -148,6 +148,10 @@ object Solution {
         id <- freshID
         _ <- addMapping(id, FValue(v))
       } yield id
+      case SemanticFormExpression(s) => for {
+        id <- freshID
+        _ <- addMapping(id, FSemanticForm(s))
+      } yield id
     }
 
   def addDefine(eq: DefiningEquation[AbsoluteIdentifier]): SolutionState[Unit] = eq match {
@@ -163,51 +167,58 @@ object Solution {
     } yield ()
   }
 
-  // TODO make this work :(
   def testExpression(
-      exp: Expression[AbsoluteIdentifier]): SolutionState[AbsoluteIdentifier] = exp match {
-    case IdentifierExpression(id) => for {
-      rep <- getRepresentativeID(id)
-    } yield rep
+      exp: Expression[AbsoluteIdentifier],
+      fstruct: FStructure,
+      groups: SetUnionFind[AbsoluteIdentifier]): List[AbsoluteIdentifier] = exp match {
+    case IdentifierExpression(id) => List(groups.find(id).get)
     case Application(e, feat) => for {
-      subID <- testExpression(e)
-      fstruct <- getFStructurePart(subID)
-      mapState: SolutionState[Map[Feature, AbsoluteIdentifier]] = fstruct match {
-        case FMapping(m) => state(m).lift[List]
-        case _ => failure
+      subID <- testExpression(e, fstruct, groups)
+      fstructPart = fstruct.map(subID)
+      map: Map[Feature, AbsoluteIdentifier] = fstructPart match {
+        case FMapping(m) => m
+        case _ => Map.empty[Feature, AbsoluteIdentifier]
       }
-      map <- mapState
-      expID <- getRepresentativeID(map(feat)) 
-    } yield expID
+      expID = map(feat)
+      expRepID = groups.find(expID).get
+    } yield expRepID
     case ValueExpression(v) => for {
-      FStructure(map, _) <- getFStructure
-      ids = map collect { case (k, FValue(`v`)) => k }
-      id <- ids.toList.liftM[SolutionStateT]
-      rep <- getRepresentativeID(id)
+      id <- (fstruct.map collect { case (k, FValue(`v`)) => k }).toList
+      rep = groups.find(id).get
+    } yield rep
+    case SemanticFormExpression(s) => for {
+      id <- (fstruct.map collect { case (k, FSemanticForm(`s`)) => k }).toList
+      rep = groups.find(id).get
     } yield rep
   }
 
-  // TODO get this (and possibly testExpression) working!
-  def satisfied(eq: ConstraintEquation[AbsoluteIdentifier]): SolutionState[Boolean] = eq match {
-    case Equals(pos, l, r) => for {
-      leftID <- testExpression(l)
-      rightID <- testExpression(r)
-      leftRep <- getRepresentativeID(leftID)
-      rightRep <- getRepresentativeID(rightID)
-    } yield (pos == (leftRep == rightRep))
-    case Contains(pos, e, c) => for {
-      elemID <- testExpression(e)
-      contID <- testExpression(c)
-      elemRep <- getRepresentativeID(elemID)
-      contStruct <- getFStructurePart(contID)
-      set <- contStruct match {
-        case FSet(s) => s.toList.map(getRepresentativeID(_)).sequence.map(_.toSet)
-        case _ => failure
-      }
-    } yield (pos == (set(elemRep)))
-    case Exists(pos, e) => ???
-    // TODO this case is evidence that I need to revise my approach for this
-    // function :(
+  def satisfied(
+      eq: ConstraintEquation[AbsoluteIdentifier],
+      fstruct: FStructure,
+      groups: SetUnionFind[AbsoluteIdentifier]): Boolean = eq match {
+    case Equals(pos, l, r) => {
+      val tests = for {
+        leftID <- testExpression(l, fstruct, groups)
+        rightID <- testExpression(r, fstruct, groups)
+      } yield (pos == (leftID == rightID))
+      !tests.filter(identity).isEmpty
+    }
+    case Contains(pos, e, c) => {
+      val tests = for {
+        elemID <- testExpression(e, fstruct, groups)
+        contID <- testExpression(c, fstruct, groups)
+        contStruct = fstruct.map(contID)
+        set = contStruct match {
+          case FSet(s) => s.map(groups.find(_).get)
+          case _ => Set.empty[AbsoluteIdentifier]
+        }
+      } yield (pos == (set(elemID)))
+      !tests.filter(identity).isEmpty
+    }
+    case Exists(pos, e) => {
+      val tests = testExpression(e, fstruct, groups)
+      pos == !tests.isEmpty
+    }
   }
 
   val makeFStructure: SolutionState[FStructure] = for {
@@ -247,8 +258,9 @@ object Solution {
         // no more compound equations left, so verify that the constraints hold
         case None => constraintEqs.headOption match {
           case Some(head) => for {
-            good <- satisfied(head)
-            if good
+            fstruct <- getFStructure
+            groups <- getGroups
+            if satisfied(head, fstruct, groups)
             sol <- solvePartial(fdesc - Constraint(head))
           } yield sol
           case None => makeFStructure
