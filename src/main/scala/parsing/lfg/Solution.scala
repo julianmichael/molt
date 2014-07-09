@@ -47,34 +47,6 @@ object Solution {
   type SolutionStateT[M[+_], +A] = StateT[M, PartialSolution, A]
   // solution state monad to represent the branching computation
   type SolutionState[A] = SolutionStateT[List, A]
-
-  // MonadPlus typeclass to give us guards. Huzzah!
-  private trait SolutionStateMonadPlus[F[+_]]
-    extends MonadPlus[({type λ[α] = SolutionStateT[F, α]})#λ] {
-    implicit def F: MonadPlus[F]
-
-    def empty[A]: SolutionStateT[F, A] = (F.empty[A]).liftM[SolutionStateT]
-    def plus[A](
-        a: SolutionStateT[F, A],
-        b: => SolutionStateT[F, A]): SolutionStateT[F, A] =
-      StateT(s => F.plus(a.run(s), b.run(s)))
-
-    def bind[A, B](
-        fa: SolutionStateT[F, A])
-        (f: A => SolutionStateT[F, B]): SolutionStateT[F, B] =
-      fa.flatMap(f)
-
-    def point[A](a: => A): SolutionStateT[F, A] = {
-      lazy val aa = a
-      StateT(s => F.point(s, aa))
-    }
-  }
-  implicit def solutionStateMonadPlus[F[+_]](
-      implicit F0: MonadPlus[F]): MonadPlus[({type λ[α] = SolutionStateT[F, α]})#λ] =
-    new SolutionStateMonadPlus[F] {
-      implicit def F: MonadPlus[F] = F0
-  }
-
   // convenience because we're always working in the same monad here
   val get: SolutionState[PartialSolution] = State.get[PartialSolution].lift[List]
   val getGroups: SolutionState[SetUnionFind[AbsoluteIdentifier]] = get map (_._1)
@@ -241,9 +213,15 @@ object Solution {
 
   val makeFStructure: SolutionState[FStructure] = for {
     FStructure(map, rootID) <- getFStructure
+    uf <- getGroups
     rootRep <- getRepresentativeID(rootID)
-    // TODO replace all IDs with representatives, then return the F-Structure.
-  } yield ???
+  } yield FStructure(map.collect {
+    case (k, v) if uf.find(k).get == k => (k, v match {
+      case FMapping(m) => FMapping(m.map { case (feat, id) => (feat, uf.find(id).get) })
+      case FSet(s) => FSet(s.map(uf.find(_).get))
+      case other => other
+    })
+  }, rootRep)
 
   def solvePartial(fdesc: FDescription): SolutionState[FStructure] = {
     val definingEqs = fdesc collect { case Defining(eq) => eq }
