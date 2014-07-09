@@ -37,7 +37,7 @@ import Scalaz._
 object Solution {
   type PartialSolution = (SetUnionFind[AbsoluteIdentifier], FStructure)
   def emptySolution(fdesc: FDescription, rootID: AbsoluteIdentifier) = {
-    val ids = fdesc.flatMap(_.identifiers)
+    val ids = fdesc.flatMap(_.identifiers) + rootID
     val uf = ids.foldLeft(SetUnionFind.empty[AbsoluteIdentifier])(_ add _)
     val map = ids.map(i => (i -> Empty)).toMap
     (uf, FStructure(map, rootID))
@@ -72,6 +72,8 @@ object Solution {
     fStructure <- getFStructure
     newMap = fStructure.map + (id -> fstruct)
     _ <- putFStructure(fStructure.copy(map = newMap))
+    groups <- getGroups
+    _ <- putGroups(groups.add(id))
   } yield ()
 
   def getRepresentativeID(id: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] =
@@ -135,8 +137,8 @@ object Solution {
     exp match {
       case IdentifierExpression(id) => state(id).lift[List]
       case Application(e, feat) => for {
-        id <- freshID
         subExpressionID <- makeExpression(e)
+        id <- freshID
         // the subexpression maps to the total expression via the feature
         _ <- addMapping(subExpressionID, FMapping(Map(feat -> id)))
         // perhaps fix this and/or update addMapping code to do FUSIONZ but

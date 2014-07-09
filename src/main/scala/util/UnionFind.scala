@@ -14,7 +14,7 @@ trait UnionFind[A] {
 import scala.collection.immutable.SortedSet
 // basic, inefficient immutable union-find based on sets
 class SetUnionFind[A] private (
-  set: Set[SortedSet[A]])
+  val set: Set[SortedSet[A]])
   (implicit ord: Ordering[A])
   extends UnionFind[A] {
 
