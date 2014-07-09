@@ -72,6 +72,7 @@ class LFGTestSuite extends FunSuite {
     startSymbol = Some("S"))
 
   test(s"John kissed Gary") {
-    println(grammar.parseTokens(List("John", "kissed", "Gary")))
+    val fstructs = grammar.parseTokens(List("John", "kissed", "Gary"))
+    fstructs.map(_.pretty).foreach(println)
   }
 }
