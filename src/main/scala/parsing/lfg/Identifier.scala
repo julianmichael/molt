@@ -6,7 +6,9 @@ sealed abstract class RelativeIdentifier extends Identifier
 case object Up extends RelativeIdentifier
 case object Down extends RelativeIdentifier
 
-case class AbsoluteIdentifier(id: String) extends Identifier
+case class AbsoluteIdentifier(id: String) extends Identifier {
+  override def toString = id
+}
 object AbsoluteIdentifier {
   implicit val ordering: Ordering[AbsoluteIdentifier] =
     Ordering.by { case AbsoluteIdentifier(id) => id }

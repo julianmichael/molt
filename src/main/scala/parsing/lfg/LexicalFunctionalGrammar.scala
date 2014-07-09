@@ -53,6 +53,7 @@ class LexicalFunctionalGrammar[A](
     ast <- cfGrammar.parseTokens(tokens)
     annotatedAST <- annotations(ast)
     (fdesc, rootID) = annotatedAST.fDescription
+    _ = fdesc.foreach(println)
     fStruct <- Solution.solve(fdesc, rootID)
   } yield fStruct
 }
