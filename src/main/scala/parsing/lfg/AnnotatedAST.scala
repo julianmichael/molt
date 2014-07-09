@@ -1,15 +1,15 @@
 package parsing.lfg
 
 sealed abstract class AnnotatedAST[A] {
-  def fDescription: FDescription = {
+  def fDescription: (FDescription, AbsoluteIdentifier) = {
     import scalaz.syntax.state._
     import scalaz.State, State._
-    type FDescriptionState[R] = State[Int, R]
+    type FDescriptionState[R] = State[Set[AbsoluteIdentifier], R]
     val freshID: FDescriptionState[AbsoluteIdentifier] = for {
-      oldName <- get[Int]
-      fresh = oldName+1
-      _ <- put(fresh)
-    } yield AbsoluteIdentifier(s"$fresh")
+      names <- get[Set[AbsoluteIdentifier]]
+      fresh = AbsoluteIdentifier.freshID(names)
+      _ <- put(names + fresh)
+    } yield fresh
     def processFDescription(upID: AbsoluteIdentifier, tree: AnnotatedAST[A]): FDescriptionState[FDescription] = tree match {
       case AnnotatedNonterminal(_, children) => {
         val childStates = children.map {
@@ -22,7 +22,7 @@ sealed abstract class AnnotatedAST[A] {
           }
         }
         val descListState = childStates.foldRight(
-          state[Int, List[FDescription]](List[FDescription]())) {
+          state[Set[AbsoluteIdentifier], List[FDescription]](List[FDescription]())) {
           case (newDescription, alreadyCalculated) => for {
             prev <- alreadyCalculated
             desc <- newDescription
@@ -40,11 +40,11 @@ sealed abstract class AnnotatedAST[A] {
       }
     }
 
-    val initialID = 0
+    val initialID = AbsoluteIdentifier("0")
     val fDescriptionProcessor = for {
-      fDesc <- processFDescription(AbsoluteIdentifier(s"$initialID"), this)
+      fDesc <- processFDescription(initialID, this)
     } yield fDesc
-    fDescriptionProcessor.eval(initialID)
+    (fDescriptionProcessor.eval(Set(initialID)), initialID)
   }
 }
 

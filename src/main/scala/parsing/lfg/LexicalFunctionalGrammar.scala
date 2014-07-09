@@ -52,7 +52,7 @@ class LexicalFunctionalGrammar[A](
   def parseTokens(tokens: List[String]): Set[FStructure] = for {
     ast <- cfGrammar.parseTokens(tokens)
     annotatedAST <- annotations(ast)
-    fdesc = annotatedAST.fDescription
-    fStruct <- Solution.solve(fdesc)
+    (fdesc, rootID) = annotatedAST.fDescription
+    fStruct <- Solution.solve(fdesc, rootID)
   } yield fStruct
 }
