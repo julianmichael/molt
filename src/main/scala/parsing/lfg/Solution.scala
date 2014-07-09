@@ -115,12 +115,13 @@ object Solution {
       case (Empty, x) => state(x).lift[List]
       case (x, Empty) => state(x).lift[List]
       case (FMapping(m1), FMapping(m2)) => {
-        val fmapping = m1 ++ m2
-        val keys = fmapping.keys
-        val unities = keys.map(k => unifyIDs(m1(k), m2(k)))
+        val features = m1.keySet intersect m2.keySet
+        val unities = features.map(k => unifyIDs(m1(k), m2(k)))
+        println(s"m1: $m1")
+        println(s"m2: $m2")
         for {
-          _ <- unities.reduce((x, y) => (for {_ <- x; b <- y} yield b))
-        } yield FMapping(fmapping)
+          _ <- unities.foldLeft(freshID)((x, y) => (for {_ <- x; b <- y} yield b))
+        } yield FMapping(m1 ++ m2)
       }
       case (FSet(s1), FSet(s2)) =>
         state(FSet(s1 ++ s2)).lift[List]
