@@ -4,30 +4,26 @@ import org.scalatest.FunSuite
 
 class LFGTestSuite extends FunSuite {
 
+  println(Equation.fromString("up PRED = 'John'"))
+  println(Expression.fromString("'John'"))
+  println(Expression.fromString("up PRED"))
+  println(RelativeIdentifier.fromString("up"))
+  println(Equation.fromString("up PRED = 'kiss<SUBJ,OBJ>'"))
+  println(Expression.fromString("yes"))
+  println(Equation.fromString("up = down"))
   // a s{i,a}mple grammar
-  // need: productions, lexical categories, start symbol?
   val noun = LFGLexicalCategory[String](
     Set[LexicalEntry](
       ("John", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "PRED"),
-          SemanticFormExpression("`John'"))),
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "DEF"),
-          ValueExpression("+")))
+        Equation.fromStringUnique("up PRED = 'John'").get,
+        Equation.fromStringUnique("up DEF = yes").get
       )),
       ("Gary", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "PRED"),
-          SemanticFormExpression("`Gary'"))),
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "DEF"),
-          ValueExpression("+")))
+        Equation.fromStringUnique("up PRED = 'Gary'").get,
+        Equation.fromStringUnique("up DEF = yes").get
       )),
       ("man", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "PRED"),
-          SemanticFormExpression("`man'")))
+        Equation.fromStringUnique("up PRED = 'man'").get
       ))
     ),
     "N"
@@ -35,9 +31,8 @@ class LFGTestSuite extends FunSuite {
   val verb = LFGLexicalCategory[String](
     Set[LexicalEntry](
       ("kissed", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "PRED"),
-          SemanticFormExpression("`kiss<subj, obj>'")))
+        Equation.fromStringUnique("up PRED = 'kiss<SUBJ,OBJ>'").get,
+        Equation.fromStringUnique("up TENSE = PAST").get
       ))
     ),
     "V"
@@ -45,14 +40,10 @@ class LFGTestSuite extends FunSuite {
   val determiner = LFGLexicalCategory[String](
     Set[LexicalEntry](
       ("the", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "DEF"),
-          ValueExpression("+")))
+        Equation.fromStringUnique("up DEF = yes").get
       )),
       ("a", Set(
-        Defining(Assignment(
-          Application(IdentifierExpression(Up), "DEF"),
-          ValueExpression("-")))
+        Equation.fromStringUnique("up DEF = no").get
       ))
     ),
     "D"
@@ -60,46 +51,39 @@ class LFGTestSuite extends FunSuite {
   val productions = Set(
     LFGProduction[String]("NP",
       List(
-        ("N", Set(Defining(Assignment(
-          IdentifierExpression(Up),
-          IdentifierExpression(Down)
-        ))))
+        ("N", Set(
+          Equation.fromStringUnique("up = down").get
+        ))
       )
     ),
     LFGProduction[String]("NP",
       List(
-        ("D", Set(Defining(Assignment(
-          IdentifierExpression(Up),
-          IdentifierExpression(Down)
-        )))),
-        ("N", Set(Defining(Assignment(
-          IdentifierExpression(Up),
-          IdentifierExpression(Down)
-        ))))
+        ("D", Set(
+          Equation.fromStringUnique("up = down").get
+        )),
+        ("N", Set(
+          Equation.fromStringUnique("up = down").get
+        ))
       )
     ),
     LFGProduction[String]("VP",
       List(
-        ("V", Set(Defining(Assignment(
-          IdentifierExpression(Up),
-          IdentifierExpression(Down)
-        )))),
-        ("NP", Set(Defining(Assignment(
-          Application(IdentifierExpression(Up), "OBJ"),
-          IdentifierExpression(Down)
-        ))))
+        ("V", Set(
+          Equation.fromStringUnique("up = down").get
+        )),
+        ("NP", Set(
+          Equation.fromStringUnique("up OBJ = down").get
+        ))
       )
     ),
     LFGProduction[String]("S",
       List(
-        ("NP", Set(Defining(Assignment(
-          Application(IdentifierExpression(Up), "SUBJ"),
-          IdentifierExpression(Down)
-        )))),
-        ("VP", Set(Defining(Assignment(
-          IdentifierExpression(Up),
-          IdentifierExpression(Down)
-        ))))
+        ("NP", Set(
+          Equation.fromStringUnique("up SUBJ = down").get
+        )),
+        ("VP", Set(
+          Equation.fromStringUnique("up = down").get
+        ))
       )
     )
   )

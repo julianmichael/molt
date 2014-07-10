@@ -9,8 +9,7 @@ package object lfg {
   type Specification = Set[Equation[RelativeIdentifier]]
   type FDescription = Set[Equation[AbsoluteIdentifier]]
   type LexicalEntry = (String, Specification)
-  // TODO make this more complicated!
-  type SemanticForm = String
+  type SemanticForm = String // todo use new definition
 
   // MonadPlus typeclass to give us guards on SolutionState in Solution! Huzzah!
   private trait StateTMonadPlus[F[+_], S]

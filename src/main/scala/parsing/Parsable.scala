@@ -131,9 +131,23 @@ class ParsableLexicalCategory(
   }
   */
 }
+object ParsableLexicalCategory {
+  def apply(subLexicon: (String => Boolean)): ParsableLexicalCategory =
+    new ParsableLexicalCategory(subLexicon)
+}
 
 // lexical category consisting only of one string
 case class Terminal(symbol: String)
   extends ParsableLexicalCategory(Set(symbol)) {
   override val tokens = Set(symbol)
 }
+
+class RegexLexicalCategory(regex: String)
+  extends ParsableLexicalCategory(_.matches(regex))
+object RegexLexicalCategory {
+  def apply(regex: String): RegexLexicalCategory =
+    new RegexLexicalCategory(regex)
+}
+
+case object Alphabetical
+  extends RegexLexicalCategory("[a-zA-Z]+")

@@ -24,12 +24,12 @@ case class Production[+A](
 case object Production extends ComplexParsable[Production[String]] {
   case object NonterminalSymbol extends ParsableLexicalCategory(w => w != "->")
   val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Production[String]])] = Map(
-    List(NonterminalSymbol, Terminal("->"), Plus(NonterminalSymbol)) -> {
+    List(NonterminalSymbol, Terminal("->"), Plus(NonterminalSymbol)) ->
       (c => for {
         head <- NonterminalSymbol.fromAST(c(0))
         children <- Plus(NonterminalSymbol).fromAST(c(2))
       } yield Production(head, children))
-    })
+    )
 }
 
 // for all productions guaranteed to be in Chomsky Normal Form

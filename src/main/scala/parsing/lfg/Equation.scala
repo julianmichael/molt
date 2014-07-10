@@ -1,5 +1,7 @@
 package parsing.lfg
 
+import parsing._
+
 sealed abstract class Equation[ID <: Identifier] {
   def negation: Equation[ID] = this match {
     case Compound(ce) => Compound(ce.negation)
@@ -17,6 +19,40 @@ sealed abstract class Equation[ID <: Identifier] {
     case Defining(de) => de.identifiers
     case Constraint(ce) => ce.identifiers
   }
+}
+object Equation extends ComplexParsable[Equation[RelativeIdentifier]] {
+  override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
+    List(Terminal("NOT"), Equation) -> (c => for {
+      negated <- Equation.fromAST(c(1))
+    } yield negated.negation),
+    List(Equation, Terminal("AND"), Equation) -> (c => for {
+      left <- Equation.fromAST(c(0))
+      right <- Equation.fromAST(c(2))
+    } yield Compound(Conjunction(left, right))),
+    List(Equation, Terminal("OR"), Equation) -> (c => for {
+      left <- Equation.fromAST(c(0))
+      right <- Equation.fromAST(c(2))
+    } yield Compound(Conjunction(left, right))),
+    List(Expression, Terminal("="), Expression) -> (c => for {
+      left <- Expression.fromAST(c(0))
+      right <- Expression.fromAST(c(2))
+    } yield Defining(Assignment(left, right))),
+    List(Expression, Terminal("IN"), Expression) -> (c => for {
+      elem <- Expression.fromAST(c(0))
+      cont <- Expression.fromAST(c(2))
+    } yield Defining(Containment(elem, cont))),
+    List(Expression, Terminal("=c"), Expression) -> (c => for {
+      left <- Expression.fromAST(c(0))
+      right <- Expression.fromAST(c(2))
+    } yield Constraint(Equals(true, left, right))),
+    List(Expression, Terminal("INc"), Expression) -> (c => for {
+      elem <- Expression.fromAST(c(0))
+      cont <- Expression.fromAST(c(2))
+    } yield Constraint(Contains(true, elem, cont))),
+    List(Expression) -> (c => for {
+      exp <- Expression.fromAST(c(0))
+    } yield Constraint(Exists(true, exp)))
+  )
 }
 
 case class Compound[ID <: Identifier](
