@@ -1,13 +1,11 @@
 package parsing.lfg
 
 /*
- * Here is how I think I must do the solution:
- * 
- * I introduce a new type, which is an F-Structure with no nested structure.
- * Instead, where any other F-Structure would appear, it only has a "name."
+ * Here is how I have done the solution:
  *
  * I maintain:
- *  - A map from "names" (unique identifiers) to instance of my new F-Structure
+ *  - A map from "names" (unique identifiers) to FStructureParts (i.e., an
+ *    F-Structure)
  *  - A set of equivalence classes of names, telling me which are identified
  *    with each other.
  *
@@ -17,20 +15,21 @@ package parsing.lfg
  * represents its minimal structure (with respect to other names).
  *   Then, the "equation" is enforced by placing the names representing the
  * values of both expressions into the same equivalence class.
- *   Finally---and this is the part I'm not totally sure of---the changed
+ *   Finally, the changed
  * equivalence classes should be "unifed." All of the F-Structures referred to
  * in them should be made the same. If the F-Structures contain names, the
  * corresponding names should be unified into the same equivalence class and
  * unification should be performed on that class as well. If any of this causes
  * a violation of Uniqueness, we can stop altogether and return a failure.
  *
- * The equivalence class data structure COULD be implemented using union-find.
- * It'd probably be best that way. TODO: implement persistent union-find data
- * structure from (Conchon and Filliatre, 2007).
+ * The equivalence class data structure is implemented using union-find.
+ * It's probably be best that way. TODO: implement efficient persistent
+ * union-find data structure from (Conchon and Filliatre, 2007).
  */
 
-// for union-find data structure
+// for union-find data structure and StateT MonadPlus instance
 import util._
+// for monadic goodness
 import scalaz._
 import Scalaz._
 
@@ -51,9 +50,6 @@ object Solution {
   val get: SolutionState[PartialSolution] = State.get[PartialSolution].lift[List]
   val getGroups: SolutionState[SetUnionFind[AbsoluteIdentifier]] = get map (_._1)
   val getFStructure: SolutionState[FStructure] = get map (_._2)
-  val getNames: SolutionState[Set[AbsoluteIdentifier]] = for {
-    FStructure(map, _) <- getFStructure
-  } yield map.keys.toSet
   def put(x: PartialSolution): SolutionState[Unit] = State.put(x).lift[List]
   def putGroups(x: SetUnionFind[AbsoluteIdentifier]): SolutionState[Unit] = for {
     psol <- get
@@ -65,16 +61,14 @@ object Solution {
   } yield ()
   val failure: SolutionState[Nothing] = List[Nothing]().liftM[SolutionStateT]
 
-  val freshID: SolutionState[AbsoluteIdentifier] =
-    getNames map (AbsoluteIdentifier.freshID(_))
-
-  def addMapping(id: AbsoluteIdentifier, fstruct: FStructurePart): SolutionState[Unit] = for {
+  val freshID: SolutionState[AbsoluteIdentifier] = for {
     fStructure <- getFStructure
-    newMap = fStructure.map + (id -> fstruct)
-    _ <- putFStructure(fStructure.copy(map = newMap))
+    newID = AbsoluteIdentifier.freshID(fStructure.map.keySet)
     groups <- getGroups
-    _ <- putGroups(groups.add(id))
-  } yield ()
+    _ <- putGroups(groups.add(newID))
+    newMap = fStructure.map + (newID -> Empty)
+    _ <- putFStructure(fStructure.copy(map = newMap))
+  } yield newID
 
   def getRepresentativeID(id: AbsoluteIdentifier): SolutionState[AbsoluteIdentifier] =
     getGroups map (_.find(id).get)
@@ -94,6 +88,15 @@ object Solution {
   } yield rep
 
   // end "pure convenience" methods, begin functionality
+
+  def addMapping(id: AbsoluteIdentifier, fstruct: FStructurePart): SolutionState[Unit] = for {
+    fStructure <- getFStructure
+    repID <- getRepresentativeID(id)
+    oldPart <- getFStructurePart(repID)
+    newPart <- unifyFStructureParts(oldPart, fstruct)
+    newMap = fStructure.map + (repID -> newPart)
+    _ <- putFStructure(fStructure.copy(map = newMap))
+  } yield ()
 
   def unifyIDs(
       id1: AbsoluteIdentifier,

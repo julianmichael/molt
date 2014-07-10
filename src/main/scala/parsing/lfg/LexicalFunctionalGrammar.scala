@@ -28,7 +28,6 @@ class LexicalFunctionalGrammar[A](
       val cfgProduction = Production(head, children.map(_.label))
       val specifications = productionToSetOfChildSpecifications(cfgProduction)
       val childrenAnnotationSets = children.map(annotations _)
-      // TODO use the "sequence" operation from scalaz
       val annotationChoices = childrenAnnotationSets.foldRight(
         Set[List[AnnotatedAST[A]]](List[AnnotatedAST[A]]())) {
         case (newChoices, setOfLists) => for {

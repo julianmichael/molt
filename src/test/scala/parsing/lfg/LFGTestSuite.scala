@@ -111,23 +111,17 @@ class LFGTestSuite extends FunSuite {
 
   test(s"John kissed Gary") {
     val fstructs = grammar.parseTokens(List("John", "kissed", "Gary"))
-    println("John kissed Gary")
     fstructs.map(_.pretty).foreach(println)
-    fstructs.foreach(_.map.foreach(println))
     assert(!fstructs.isEmpty)
   }
   test(s"a man kissed Gary") {
-    println("a man kissed Gary")
     val fstructs = grammar.parseTokens(List("a", "man", "kissed", "Gary"))
     fstructs.map(_.pretty).foreach(println)
-    fstructs.foreach(_.map.foreach(println))
     assert(!fstructs.isEmpty)
   }
   test(s"the man kissed Gary") {
-    println("the man kissed Gary")
     val fstructs = grammar.parseTokens(List("the", "man", "kissed", "Gary"))
     fstructs.map(_.pretty).foreach(println)
-    fstructs.foreach(_.map.foreach(println))
     assert(!fstructs.isEmpty)
   }
 }
