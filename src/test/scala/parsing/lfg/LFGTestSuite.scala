@@ -1,89 +1,81 @@
 package parsing.lfg
 
 import org.scalatest.FunSuite
+import Parsables._
+import parsing.ParseCommands._
 
 class LFGTestSuite extends FunSuite {
 
-  println(Equation.fromString("up PRED = 'John'"))
+  println(parse[Equation[RelativeIdentifier]]("up PRED = 'John'"))
   println(Expression.fromString("'John'"))
   println(Expression.fromString("up PRED"))
   println(RelativeIdentifier.fromString("up"))
-  println(Equation.fromString("up PRED = 'kiss<SUBJ,OBJ>'"))
+  println(parse[Equation[RelativeIdentifier]]("up PRED = 'kiss<SUBJ,OBJ>'"))
   println(Expression.fromString("yes"))
-  println(Equation.fromString("up = down"))
+  println(parse[Equation[RelativeIdentifier]]("up = down"))
   // a s{i,a}mple grammar
   val noun = LFGLexicalCategory[String](
-    Set[LexicalEntry](
-      ("John", Set(
-        Equation.fromStringUnique("up PRED = 'John'").get,
-        Equation.fromStringUnique("up DEF = yes").get
-      )),
-      ("Gary", Set(
-        Equation.fromStringUnique("up PRED = 'Gary'").get,
-        Equation.fromStringUnique("up DEF = yes").get
-      )),
-      ("man", Set(
-        Equation.fromStringUnique("up PRED = 'man'").get
-      ))
-    ),
+    Set(
+      """John:  up PRED = 'John'  ;
+                up DEF  = yes     """,
+
+      """Gary:  up PRED = 'Gary'  ;
+                up DEF  = yes     """,
+
+      """man:  up PRED = 'man'    """
+    ).map(parseForced[LexicalEntry]),
     "N"
   )
   val verb = LFGLexicalCategory[String](
-    Set[LexicalEntry](
-      ("kissed", Set(
-        Equation.fromStringUnique("up PRED = 'kiss<SUBJ,OBJ>'").get,
-        Equation.fromStringUnique("up TENSE = PAST").get
-      ))
-    ),
+    Set(
+      """kissed:  up PRED  = 'kiss<SUBJ,OBJ>' ;
+                  up TENSE = PAST             """
+    ).map(parseForced[LexicalEntry]),
     "V"
   )
   val determiner = LFGLexicalCategory[String](
-    Set[LexicalEntry](
-      ("the", Set(
-        Equation.fromStringUnique("up DEF = yes").get
-      )),
-      ("a", Set(
-        Equation.fromStringUnique("up DEF = no").get
-      ))
-    ),
+    Set(
+      "the: up DEF = yes",
+      "a:   up DEF = no"
+    ).map(parseForced[LexicalEntry]),
     "D"
   )
   val productions = Set(
     LFGProduction[String]("NP",
       List(
         ("N", Set(
-          Equation.fromStringUnique("up = down").get
-        ))
+          "up = down"
+        ).map(parseForced[Equation[RelativeIdentifier]]))
       )
     ),
     LFGProduction[String]("NP",
       List(
         ("D", Set(
-          Equation.fromStringUnique("up = down").get
-        )),
+          "up = down"
+        ).map(parseForced[Equation[RelativeIdentifier]])),
         ("N", Set(
-          Equation.fromStringUnique("up = down").get
-        ))
+          "up = down"
+        ).map(parseForced[Equation[RelativeIdentifier]]))
       )
     ),
     LFGProduction[String]("VP",
       List(
         ("V", Set(
-          Equation.fromStringUnique("up = down").get
-        )),
+          "up = down"
+        ).map(parseForced[Equation[RelativeIdentifier]])),
         ("NP", Set(
-          Equation.fromStringUnique("up OBJ = down").get
-        ))
+          "up OBJ = down"
+        ).map(parseForced[Equation[RelativeIdentifier]]))
       )
     ),
     LFGProduction[String]("S",
       List(
         ("NP", Set(
-          Equation.fromStringUnique("up SUBJ = down").get
-        )),
+          "up SUBJ = down"
+        ).map(parseForced[Equation[RelativeIdentifier]])),
         ("VP", Set(
-          Equation.fromStringUnique("up = down").get
-        ))
+          "up = down"
+        ).map(parseForced[Equation[RelativeIdentifier]]))
       )
     )
   )
@@ -93,19 +85,21 @@ class LFGTestSuite extends FunSuite {
     lexicalCategories = Set(noun, verb, determiner),
     startSymbol = Some("S"))
 
-  test(s"John kissed Gary") {
-    val fstructs = grammar.parseTokens(List("John", "kissed", "Gary"))
-    fstructs.map(_.pretty).foreach(println)
+  def testSentence(tokens: List[String]) = {
+    println(tokens.mkString(" "))
+    val fstructs = grammar.parseTokens(tokens)
+    fstructs.map(FStructureParser.makeString).foreach(println)
+    println
     assert(!fstructs.isEmpty)
+  }
+
+  test(s"John kissed Gary") {
+    testSentence(List("John", "kissed", "Gary"))
   }
   test(s"a man kissed Gary") {
-    val fstructs = grammar.parseTokens(List("a", "man", "kissed", "Gary"))
-    fstructs.map(_.pretty).foreach(println)
-    assert(!fstructs.isEmpty)
+    testSentence(List("a", "man", "kissed", "Gary"))
   }
   test(s"the man kissed Gary") {
-    val fstructs = grammar.parseTokens(List("the", "man", "kissed", "Gary"))
-    fstructs.map(_.pretty).foreach(println)
-    assert(!fstructs.isEmpty)
+    testSentence(List("the", "man", "kissed", "Gary"))
   }
 }

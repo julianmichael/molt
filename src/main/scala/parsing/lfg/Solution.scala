@@ -120,8 +120,6 @@ object Solution {
       case (FMapping(m1), FMapping(m2)) => {
         val features = m1.keySet intersect m2.keySet
         val unities = features.map(k => unifyIDs(m1(k), m2(k)))
-        println(s"m1: $m1")
-        println(s"m2: $m2")
         for {
           _ <- unities.foldLeft(freshID)((x, y) => (for {_ <- x; b <- y} yield b))
         } yield FMapping(m1 ++ m2)

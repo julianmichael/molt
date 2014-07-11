@@ -108,6 +108,19 @@ case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
     ))
 }
 
+case class DelimitedList[A](delimiter: String, parsable: Parsable[A]) extends ComplexParsable[List[A]] {
+  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
+    List(parsable, Terminal(delimiter), this) -> ( c =>
+      for {
+        head <- parsable.fromAST(c(0))
+        tail <- this.fromAST(c(2))
+      } yield head :: tail),
+    List(parsable) -> (c => for {
+      end <- parsable.fromAST(c(0))
+    } yield List(end))
+  )
+}
+
 /*
  * SimpleParsable objects are for special cases where
  * we don't want to add any productions to the grammar but we still
