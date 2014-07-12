@@ -1,6 +1,7 @@
 package parsing.lfg
 import parsing._
 import parsing.ParseCommands._
+import parsing.Parsables._
 
 object Parsables {
 
@@ -67,17 +68,29 @@ object Parsables {
     }
 
   }
-  
-  val Specification = DelimitedList(";", EquationParser)
-  
+
+  implicit object LFGLexicalCategoryParser extends ComplexParsable[LFGLexicalCategory[String]] {
+
+    val LexicalEntrySetParser = new SetParser[LexicalEntry](LexicalEntryParser)
+
+    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LFGLexicalCategory[String]])] = Map(
+      List(Alphabetical, Terminal(":"), LexicalEntrySetParser) -> (c => for {
+        head <- Alphabetical.fromAST(c(0))
+        entries <- LexicalEntrySetParser.fromAST(c(2))
+      } yield LFGLexicalCategory[String](entries, head))
+    )
+  }
+
+  implicit val SpecificationParser = DelimitedList(",", EquationParser)
+
   implicit object LexicalEntryParser extends ComplexParsable[LexicalEntry] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LexicalEntry])] = Map(
       List(Alphabetical) -> (c => for {
         word <- Alphabetical.fromAST(c(0))
       } yield (word, Set[Equation[RelativeIdentifier]]())),
-      List(Alphabetical, Terminal(":"), Specification) -> (c => for {
+      List(Alphabetical, Terminal(":"), SpecificationParser) -> (c => for {
         word <- Alphabetical.fromAST(c(0))
-        eqs <- Specification.fromAST(c(2))
+        eqs <- SpecificationParser.fromAST(c(2))
       } yield (word, eqs.toSet))
     )
   }
@@ -95,32 +108,32 @@ object Parsables {
         left <- EquationParser.fromAST(c(0))
         right <- EquationParser.fromAST(c(2))
       } yield Compound(Conjunction(left, right))),
-      List(Expression, Terminal("="), Expression) -> (c => for {
-        left <- Expression.fromAST(c(0))
-        right <- Expression.fromAST(c(2))
+      List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
+        left <- ExpressionParser.fromAST(c(0))
+        right <- ExpressionParser.fromAST(c(2))
       } yield Defining(Assignment(left, right))),
-      List(Expression, Terminal("IN"), Expression) -> (c => for {
-        elem <- Expression.fromAST(c(0))
-        cont <- Expression.fromAST(c(2))
+      List(ExpressionParser, Terminal("IN"), ExpressionParser) -> (c => for {
+        elem <- ExpressionParser.fromAST(c(0))
+        cont <- ExpressionParser.fromAST(c(2))
       } yield Defining(Containment(elem, cont))),
-      List(Expression, Terminal("=c"), Expression) -> (c => for {
-        left <- Expression.fromAST(c(0))
-        right <- Expression.fromAST(c(2))
+      List(ExpressionParser, Terminal("=c"), ExpressionParser) -> (c => for {
+        left <- ExpressionParser.fromAST(c(0))
+        right <- ExpressionParser.fromAST(c(2))
       } yield Constraint(Equals(true, left, right))),
-      List(Expression, Terminal("INc"), Expression) -> (c => for {
-        elem <- Expression.fromAST(c(0))
-        cont <- Expression.fromAST(c(2))
+      List(ExpressionParser, Terminal("INc"), ExpressionParser) -> (c => for {
+        elem <- ExpressionParser.fromAST(c(0))
+        cont <- ExpressionParser.fromAST(c(2))
       } yield Constraint(Contains(true, elem, cont))),
-      List(Expression) -> (c => for {
-        exp <- Expression.fromAST(c(0))
+      List(ExpressionParser) -> (c => for {
+        exp <- ExpressionParser.fromAST(c(0))
       } yield Constraint(Exists(true, exp)))
     )
   }
 
-  object Expression extends ComplexParsable[Expression[RelativeIdentifier]] {
+  implicit object ExpressionParser extends ComplexParsable[Expression[RelativeIdentifier]] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Expression[RelativeIdentifier]])] = Map(
-      List(IdentifyingExpression) -> (c => for {
-        exp <- IdentifyingExpression.fromAST(c(0))
+      List(IdentifyingExpressionParser) -> (c => for {
+        exp <- IdentifyingExpressionParser.fromAST(c(0))
       } yield FunctionalExpression(exp)),
       List(ValueCategory) -> (c => for {
         value <- ValueCategory.fromAST(c(0))
@@ -132,13 +145,13 @@ object Parsables {
     )
   }
 
-  object IdentifyingExpression extends ComplexParsable[IdentifyingExpression[RelativeIdentifier]] {
+  implicit object IdentifyingExpressionParser extends ComplexParsable[IdentifyingExpression[RelativeIdentifier]] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[IdentifyingExpression[RelativeIdentifier]])] = Map(
-      List(RelativeIdentifier) -> (c => for {
-        id <- RelativeIdentifier.fromAST(c(0))
+      List(RelativeIdentifierParser) -> (c => for {
+        id <- RelativeIdentifierParser.fromAST(c(0))
       } yield BareIdentifier(id)),
-      List(IdentifyingExpression, Alphabetical) -> (c => for {
-        exp <- IdentifyingExpression.fromAST(c(0))
+      List(IdentifyingExpressionParser, Alphabetical) -> (c => for {
+        exp <- IdentifyingExpressionParser.fromAST(c(0))
         feat <- Alphabetical.fromAST(c(1))
       } yield Application(exp, feat))
     )
@@ -149,26 +162,26 @@ object Parsables {
       List(Alphabetical) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
       } yield new SemanticForm(head, Nil)),
-      List(Alphabetical, Terminal("<"), FeatureList, Terminal(">")) -> (c => for {
+      List(Alphabetical, Terminal("<"), FeatureListParser, Terminal(">")) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
-        args <- FeatureList.fromAST(c(2))
+        args <- FeatureListParser.fromAST(c(2))
       } yield new SemanticForm(head, args))
     )
 
     def makeString(sem: SemanticForm): String = sem match { case SemanticForm(head, args) =>
       if(args.isEmpty) s"'$head'"
-      else s"'head<${args.mkString(",")}>'"
+      else s"'$head<${args.mkString(",")}>'"
     }
   }
 
-  object RelativeIdentifier extends ComplexParsable[RelativeIdentifier] {
+  implicit object RelativeIdentifierParser extends ComplexParsable[RelativeIdentifier] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[RelativeIdentifier])] = Map(
       List(Terminal("up")) -> (c => Some(Up)),
       List(Terminal("down")) -> (c => Some(Down))
     )
   }
 
-  val FeatureList = DelimitedList[Feature](",", Alphabetical)
+  val FeatureListParser = DelimitedList[Feature](",", Alphabetical)
 
   val ValueCategory =
     ParsableLexicalCategory(s => (s != "up" && s != "down" && s.forall(_.isLetter)))

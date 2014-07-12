@@ -2,44 +2,37 @@ package parsing.lfg
 
 import org.scalatest.FunSuite
 import Parsables._
+import parsing.Parsables._
 import parsing.ParseCommands._
 
 class LFGTestSuite extends FunSuite {
 
   println(parse[Equation[RelativeIdentifier]]("up PRED = 'John'"))
-  println(Expression.fromString("'John'"))
-  println(Expression.fromString("up PRED"))
-  println(RelativeIdentifier.fromString("up"))
+  println(parse[Expression[RelativeIdentifier]]("'John'"))
+  println(parse[Expression[RelativeIdentifier]]("up PRED"))
+  println(parse[RelativeIdentifier]("up"))
   println(parse[Equation[RelativeIdentifier]]("up PRED = 'kiss<SUBJ,OBJ>'"))
-  println(Expression.fromString("yes"))
+  println(parse[Expression[RelativeIdentifier]]("yes"))
+  println(parse[Set[Set[Set[Expression[RelativeIdentifier]]]]]("{{{yes}}}"))
   println(parse[Equation[RelativeIdentifier]]("up = down"))
   // a s{i,a}mple grammar
-  val noun = LFGLexicalCategory[String](
-    Set(
-      """John:  up PRED = 'John'  ;
-                up DEF  = yes     """,
+  val noun = parseForced[LFGLexicalCategory[String]](
+    """N:   {   John:  up PRED = 'John'  ,
+                       up DEF  = yes     ,
 
-      """Gary:  up PRED = 'Gary'  ;
-                up DEF  = yes     """,
+                Gary:  up PRED = 'Gary'  ,
+                       up DEF  = yes     ,
 
-      """man:  up PRED = 'man'    """
-    ).map(parseForced[LexicalEntry]),
-    "N"
-  )
-  val verb = LFGLexicalCategory[String](
-    Set(
-      """kissed:  up PRED  = 'kiss<SUBJ,OBJ>' ;
-                  up TENSE = PAST             """
-    ).map(parseForced[LexicalEntry]),
-    "V"
-  )
-  val determiner = LFGLexicalCategory[String](
-    Set(
-      "the: up DEF = yes",
-      "a:   up DEF = no"
-    ).map(parseForced[LexicalEntry]),
-    "D"
-  )
+                man:   up PRED = 'man'    }""")
+
+  val verb = parseForced[LFGLexicalCategory[String]](
+    """V:  {    kissed:  up PRED  = 'kiss<SUBJ,OBJ>' ,
+                         up TENSE = PAST             }""")
+
+  val determiner = parseForced[LFGLexicalCategory[String]](
+    """D:  {    the:  up DEF = yes    ,
+                a:    up DEF = no     }""")
+
   val productions = Set(
     LFGProduction[String]("NP",
       List(
