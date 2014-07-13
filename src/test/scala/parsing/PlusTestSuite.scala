@@ -1,5 +1,7 @@
 package parsing
 
+import ParserHelpers._
+
 class PlusTestParameters[A](parsable: Parsable[A]) extends ParsableTestParameters[List[A]] {
   override val children = Set(
     parsable) ++

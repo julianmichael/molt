@@ -1,5 +1,6 @@
 package parsing
 
+import scala.collection.mutable
 /*
  * Parsable contains most of the functionality and framework for any object
  * that we want to be able to parse from a string, so I make most of the notes

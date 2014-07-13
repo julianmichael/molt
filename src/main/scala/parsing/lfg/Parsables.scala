@@ -83,7 +83,7 @@ object Parsables {
     )
   }
 
-  implicit val SpecificationParser = DelimitedList(",", EquationParser)
+  implicit object SpecificationParser extends DelimitedList(",", EquationParser)
 
   implicit object LexicalEntryParser extends ComplexParsable[LexicalEntry] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LexicalEntry])] = Map(
@@ -183,8 +183,8 @@ object Parsables {
     )
   }
 
-  val FeatureListParser = DelimitedList[Feature](",", Alphabetical)
+  object FeatureListParser extends DelimitedList[Feature](",", Alphabetical)
 
-  val ValueCategory =
+  object ValueCategory extends
     ParsableLexicalCategory(s => (s != "up" && s != "down" && s.forall(_.isLetter)))
 }

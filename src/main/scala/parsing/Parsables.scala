@@ -3,10 +3,12 @@ package parsing
 import parsing.ParserHelpers._
 
 object Parsables {
-  // for convenience in ProductionParser
-  private val NonterminalSymbol = new ParsableLexicalCategory(w => w != "->")
 
   implicit object ProductionParser extends ComplexParsable[Production[String]] {
+
+    // for convenience in ProductionParser
+    val NonterminalSymbol = new ParsableLexicalCategory(w => w != "->")
+
     val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Production[String]])] = Map(
       List(NonterminalSymbol, Terminal("->"), Plus(NonterminalSymbol)) ->
         (c => for {

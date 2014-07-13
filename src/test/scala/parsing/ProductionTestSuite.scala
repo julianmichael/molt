@@ -1,45 +1,48 @@
 package parsing
 
+import Parsables._
+import ParserHelpers._
+
 class ProductionTestSuite extends ParsableTestSuite[Production[String]] {
   override val parameters = ProductionTestParameters
-  override val parsable = Production
+  override val parsable = ProductionParser
 }
 
 class ProductionPlusTestSuite extends ParsableTestSuite[List[String]] {
-  override val parameters = new PlusTestParameters(Production.NonterminalSymbol)
-  override val parsable = Plus(Production.NonterminalSymbol)
+  override val parameters = new PlusTestParameters(ProductionParser.NonterminalSymbol)
+  override val parsable = Plus(ProductionParser.NonterminalSymbol)
 }
 
 object ProductionTestParameters extends ParsableTestParameters[Production[String]] {
-  private[this] val plusTestParameters = new PlusTestParameters(Production.NonterminalSymbol)
+  private[this] val plusTestParameters = new PlusTestParameters(ProductionParser.NonterminalSymbol)
   override val children = Set(
-    Production.NonterminalSymbol,
+    ProductionParser.NonterminalSymbol,
     Terminal("->"),
-    Plus(Production.NonterminalSymbol)) ++
+    Plus(ProductionParser.NonterminalSymbol)) ++
     plusTestParameters.children
   override val nonterminals = Set(
-    Production,
-    Plus(Production.NonterminalSymbol)) ++
+    ProductionParser,
+    Plus(ProductionParser.NonterminalSymbol)) ++
     plusTestParameters.nonterminals
   override val tokens = Set("->") ++ plusTestParameters.tokens
   override val productions = Set(
-    Production(Production, List(Production.NonterminalSymbol, Terminal("->"), Plus(Production.NonterminalSymbol)))) ++
+    Production(ProductionParser, List(ProductionParser.NonterminalSymbol, Terminal("->"), Plus(ProductionParser.NonterminalSymbol)))) ++
     plusTestParameters.productions
   override val cnfProductions = Set(
-    Binary(NormalTag(Production), NormalTag(Production.NonterminalSymbol), ChunkedTag(List(Terminal("->"), Plus(Production.NonterminalSymbol)))),
-    Binary(ChunkedTag(List(Terminal("->"), Plus(Production.NonterminalSymbol))), NormalTag(Terminal("->")), NormalTag(Plus(Production.NonterminalSymbol)))) ++
+    Binary(NormalTag(ProductionParser), NormalTag(ProductionParser.NonterminalSymbol), ChunkedTag(List(Terminal("->"), Plus(ProductionParser.NonterminalSymbol)))),
+    Binary(ChunkedTag(List(Terminal("->"), Plus(ProductionParser.NonterminalSymbol))), NormalTag(Terminal("->")), NormalTag(Plus(ProductionParser.NonterminalSymbol)))) ++
     plusTestParameters.cnfProductions
   override val testParses = List(
     TestParse(
       Some("S -> NP VP"),
       Some(List("S", "->", "NP", "VP")),
-      Some(ASTNonterminal(Production, List(
-        ASTTerminal(Production.NonterminalSymbol, "S"),
+      Some(ASTNonterminal(ProductionParser, List(
+        ASTTerminal(ProductionParser.NonterminalSymbol, "S"),
         ASTTerminal(Terminal("->"), "->"),
-        ASTNonterminal(Plus(Production.NonterminalSymbol), List(
-          ASTTerminal(Production.NonterminalSymbol, "NP"),
-          ASTNonterminal(Plus(Production.NonterminalSymbol), List(
-            ASTTerminal(Production.NonterminalSymbol, "VP")
+        ASTNonterminal(Plus(ProductionParser.NonterminalSymbol), List(
+          ASTTerminal(ProductionParser.NonterminalSymbol, "NP"),
+          ASTNonterminal(Plus(ProductionParser.NonterminalSymbol), List(
+            ASTTerminal(ProductionParser.NonterminalSymbol, "VP")
           ))
         ))
       ))),
