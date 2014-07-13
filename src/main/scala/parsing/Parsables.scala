@@ -1,5 +1,22 @@
 package parsing
+
+import parsing.ParserHelpers._
+
 object Parsables {
+  // for convenience in ProductionParser
+  private val NonterminalSymbol = new ParsableLexicalCategory(w => w != "->")
+
+  implicit object ProductionParser extends ComplexParsable[Production[String]] {
+    val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Production[String]])] = Map(
+      List(NonterminalSymbol, Terminal("->"), Plus(NonterminalSymbol)) ->
+        (c => for {
+          head <- NonterminalSymbol.fromAST(c(0))
+          children <- Plus(NonterminalSymbol).fromAST(c(2))
+        } yield Production(head, children))
+      )
+  }
+}
+object GenericParsables {
 
   /**********
    * Parameterized parsables: implicitly created from other parsables! Awesome

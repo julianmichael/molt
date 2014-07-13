@@ -2,19 +2,11 @@ package parsing.lfg
 
 import org.scalatest.FunSuite
 import Parsables._
-import parsing.Parsables._
+import parsing.GenericParsables._
 import parsing.ParseCommands._
 
 class LFGTestSuite extends FunSuite {
 
-  println(parse[Equation[RelativeIdentifier]]("up PRED = 'John'"))
-  println(parse[Expression[RelativeIdentifier]]("'John'"))
-  println(parse[Expression[RelativeIdentifier]]("up PRED"))
-  println(parse[RelativeIdentifier]("up"))
-  println(parse[Equation[RelativeIdentifier]]("up PRED = 'kiss<SUBJ,OBJ>'"))
-  println(parse[Expression[RelativeIdentifier]]("yes"))
-  println(parse[Set[Set[Set[Expression[RelativeIdentifier]]]]]("{{{yes}}}"))
-  println(parse[Equation[RelativeIdentifier]]("up = down"))
   // a s{i,a}mple grammar
   val noun = parseForced[LFGLexicalCategory[String]](
     """N:   {   John:  up PRED = 'John'  ,

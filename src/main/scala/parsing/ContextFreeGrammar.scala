@@ -37,8 +37,8 @@ class ContextFreeGrammar[A](
           val tok = tokens(offset)
           (for {
             category <- lexicalCategories
-            if category.subLexicon(tok)
-          } yield CNFTerminal[A](category.startSymbol, tok)).toSet
+            if category.member(tok)
+          } yield CNFTerminal[A](category.symbol, tok)).toSet
         } else { // binary
           // pivotPairs: a list of all of the pairs of table cells that could correspond
           // to the children of the current table cell

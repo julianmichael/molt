@@ -12,9 +12,8 @@ class LexicalFunctionalGrammar[A](
   val startSymbol: Option[A] = None) {
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
-  private[this] val cfgLexicalCategories = lexicalCategories.map(_.cfgLexicalCategory)
   private[this] val cfGrammar =
-    new ContextFreeGrammar[A](cfgProductions, cfgLexicalCategories.toList, startSymbol)
+    new ContextFreeGrammar[A](cfgProductions, lexicalCategories.toList, startSymbol)
 
   private[this] val productionToSetOfChildSpecifications: Map[Production[A], Set[List[Specification]]] =
     productions.groupBy(_.cfgProduction).map {
@@ -41,10 +40,9 @@ class LexicalFunctionalGrammar[A](
       } yield AnnotatedNonterminal(head, childrenAnnotation.zip(spec))
     }
     case ASTTerminal(head, token) => for {
-      LFGLexicalCategory(lexicalEntries, symbol) <- lexicalCategories
-      if symbol == head
-      (word, spec) <- lexicalEntries
-      if word == token
+      lexcat <- lexicalCategories
+      if lexcat.symbol == head
+      spec <- lexcat.specifications(token)
     } yield AnnotatedTerminal(head, (token, spec))
   }
 

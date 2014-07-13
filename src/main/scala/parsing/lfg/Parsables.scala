@@ -2,6 +2,8 @@ package parsing.lfg
 import parsing._
 import parsing.ParseCommands._
 import parsing.Parsables._
+import parsing.GenericParsables._
+import parsing.ParserHelpers._
 
 object Parsables {
 
@@ -77,7 +79,7 @@ object Parsables {
       List(Alphabetical, Terminal(":"), LexicalEntrySetParser) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
         entries <- LexicalEntrySetParser.fromAST(c(2))
-      } yield LFGLexicalCategory[String](entries, head))
+      } yield BasicLFGLexicalCategory[String](head, entries))
     )
   }
 

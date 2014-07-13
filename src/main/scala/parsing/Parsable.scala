@@ -91,76 +91,23 @@ trait ComplexParsable[A] extends Parsable[A] {
 }
 
 /*
- * Most ComplexParsables will be objects, but classes can be used for even
- * cooler functionality, for example with the + construction in common notation
- */
-case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
-    List(parsable, this) -> ( c =>
-      for {
-        head <- parsable.fromAST(c(0))
-        tail <- this.fromAST(c(1))
-      } yield head :: tail),
-    List(parsable) -> ( c =>
-      for {
-        end <- parsable.fromAST(c(0))
-      } yield List(end)
-    ))
-}
-
-case class DelimitedList[A](delimiter: String, parsable: Parsable[A]) extends ComplexParsable[List[A]] {
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
-    List(parsable, Terminal(delimiter), this) -> ( c =>
-      for {
-        head <- parsable.fromAST(c(0))
-        tail <- this.fromAST(c(2))
-      } yield head :: tail),
-    List(parsable) -> (c => for {
-      end <- parsable.fromAST(c(0))
-    } yield List(end))
-  )
-}
-
-/*
  * SimpleParsable objects are for special cases where
  * we don't want to add any productions to the grammar but we still
  * need to parse stuff from ASTs/strings. This is important for not asploding
  * the grammar size just because we have a large vocabulary.
  */
 sealed trait SimpleParsable[A] extends Parsable[A] {
-  final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] =
-    Map()
+  final override val synchronousProductions =
+    Map.empty[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])]
 }
 
 class ParsableLexicalCategory(
-  val subLexicon: (String => Boolean))
+  val memberFunc: (String => Boolean))
   extends LexicalCategory[Parsable[_]] with SimpleParsable[String] {
-  override val startSymbol = this
-  /*
-  override def fromAST(ast: AST[Parsable[_]]): Option[String] = ast match {
-    case ASTTerminal(`startSymbol`, str) if subLexicon(str) =>
-      Some(str)
-    case _ => None
-  }
-  */
+  override val symbol = this
+  override def member(str: String) = memberFunc(str)
 }
 object ParsableLexicalCategory {
-  def apply(subLexicon: (String => Boolean)): ParsableLexicalCategory =
-    new ParsableLexicalCategory(subLexicon)
+  def apply(member: (String => Boolean)): ParsableLexicalCategory =
+    new ParsableLexicalCategory(member)
 }
-
-// lexical category consisting only of one string
-case class Terminal(symbol: String)
-  extends ParsableLexicalCategory(Set(symbol)) {
-  override val tokens = Set(symbol)
-}
-
-class RegexLexicalCategory(regex: String)
-  extends ParsableLexicalCategory(_.matches(regex))
-object RegexLexicalCategory {
-  def apply(regex: String): RegexLexicalCategory =
-    new RegexLexicalCategory(regex)
-}
-
-case object Alphabetical
-  extends RegexLexicalCategory("[a-zA-Z]+")
