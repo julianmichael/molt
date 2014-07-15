@@ -4,70 +4,60 @@ import org.scalatest.FunSuite
 import Parsables._
 import parsing.ParseCommands._
 import parsing.Parsables._
+import parsing.GenericParsables._
 
 class LFGTestSuite extends FunSuite {
 
   // a s{i,a}mple grammar
-  val noun = parseForced[LFGLexicalCategory[String]](
-    """N:   {   John:  up PRED = 'John'  ,
-                       up DEF  = yes     ,
+  val partsOfSpeech = parseForced[Set[LFGLexicalCategory[String]]](
+    """
+    {   N:   {   John:    {   up PRED = 'John'              ,
+                              up DEF  = yes                 },
 
-                Gary:  up PRED = 'Gary'  ,
-                       up DEF  = yes     ,
+                 Gary:    {   up PRED = 'Gary'              ,
+                              up DEF  = yes                 },
 
-                man:   up PRED = 'man'    }""")
+                 man:     {   up PRED = 'man'               }},
 
-  val verb = parseForced[LFGLexicalCategory[String]](
-    """V:  {    kissed:  up PRED  = 'kiss<SUBJ,OBJ>' ,
-                         up TENSE = PAST             }""")
+        V:  {    kissed:  {   up PRED  = 'kiss<SUBJ,OBJ>'   ,
+                              up TENSE = PAST               }},
 
-  val determiner = parseForced[LFGLexicalCategory[String]](
-    """D:  {    the:  up DEF = yes    ,
-                a:    up DEF = no     }""")
+        D:  {    the:     {   up DEF = yes                  },
+
+                 a:       {   up DEF = no                   }}}
+    """)
+  // TODO figure out how to make a natural whitespace processor that turns the
+  // spacing here into the braces---so no braces need to be written at all!
 
   val productions = Set(
     LFGProduction[String]("NP",
       List(
-        ("N", Set(
-          "up = down"
-        ).map(parseForced[Equation[RelativeIdentifier]]))
+        ("N", parseForced[Specification]("{ up = down }"))
       )
     ),
     LFGProduction[String]("NP",
       List(
-        ("D", Set(
-          "up = down"
-        ).map(parseForced[Equation[RelativeIdentifier]])),
-        ("N", Set(
-          "up = down"
-        ).map(parseForced[Equation[RelativeIdentifier]]))
+        ("D", parseForced[Specification]("{ up = down }")),
+        ("N", parseForced[Specification]("{ up = down }"))
       )
     ),
     LFGProduction[String]("VP",
       List(
-        ("V", Set(
-          "up = down"
-        ).map(parseForced[Equation[RelativeIdentifier]])),
-        ("NP", Set(
-          "up OBJ = down"
-        ).map(parseForced[Equation[RelativeIdentifier]]))
+        ("V", parseForced[Specification]("{ up = down }")),
+        ("NP", parseForced[Specification]("{ up OBJ = down }"))
       )
     ),
     LFGProduction[String]("S",
       List(
-        ("NP", Set(
-          "up SUBJ = down"
-        ).map(parseForced[Equation[RelativeIdentifier]])),
-        ("VP", Set(
-          "up = down"
-        ).map(parseForced[Equation[RelativeIdentifier]]))
+        ("NP", parseForced[Specification]("{ up SUBJ = down }")),
+        ("VP", parseForced[Specification]("{ up = down }"))
       )
     )
   )
 
   val grammar = new LexicalFunctionalGrammar[String](
     productions = productions,
-    lexicalCategories = Set(noun, verb, determiner),
+    lexicalCategories = partsOfSpeech,
     startSymbol = Some("S"))
 
   def testSentence(tokens: List[String]) = {

@@ -83,7 +83,7 @@ object Parsables {
     )
   }
 
-  implicit object SpecificationParser extends DelimitedList(",", EquationParser)
+  implicit object SpecificationParser extends SetParser(EquationParser)
 
   implicit object LexicalEntryParser extends ComplexParsable[LexicalEntry] {
     override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LexicalEntry])] = Map(
