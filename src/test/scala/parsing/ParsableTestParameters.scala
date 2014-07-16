@@ -9,11 +9,11 @@ case class TestParse[A](
     symbolic: Option[A])
 
 trait ParsableTestParameters[A] {
-  def children: Set[Parsable[_]]
-  def nonterminals: Set[Parsable[_]]
-  def tokens: Set[String]
-  def productions: Set[Production[Parsable[_]]]
-  def cnfProductions: Set[CNFProduction[Parsable[_]]]
+  def children: Option[Set[Parsable[_]]]
+  def nonterminals: Option[Set[Parsable[_]]]
+  def tokens: Option[Set[String]]
+  def productions: Option[Set[Production[Parsable[_]]]]
+  def cnfProductions: Option[Set[CNFProduction[Parsable[_]]]]
   def testParses: List[TestParse[A]]
 }
 
@@ -22,25 +22,25 @@ abstract class ParsableTestSuite[A] extends FunSuite {
   val parameters: ParsableTestParameters[A]
   val parsable: Parsable[A]
 
-  test(s"children") {
-    assert(parsable.children === parameters.children)
-  }
+  test(s"children") { parameters.children foreach (children => 
+    assert(parsable.children === children)
+  )}
 
-  test(s"grammar productions") {
-    assert(parsable.grammar.productions === parameters.productions)
-  }
+  test(s"grammar productions") { parameters.productions foreach (productions =>
+    assert(parsable.grammar.productions === productions)
+  )}
 
-  test(s"CNF productions") {
-    assert(parsable.grammar.cnfProductions === parameters.cnfProductions)
-  }
+  test(s"CNF productions") { parameters.cnfProductions foreach (cnfProductions =>
+    assert(parsable.grammar.cnfProductions === cnfProductions)
+  )}
 
-  test(s"nonterminals") {
-    assert(parsable.grammar.nonterminals === parameters.nonterminals)
-  }
+  test(s"nonterminals") { parameters.nonterminals foreach (nonterminals =>
+    assert(parsable.grammar.nonterminals === nonterminals)
+  )}
 
-  test(s"tokens") {
-    assert(parsable.allTokens === parameters.tokens)
-  }
+  test(s"tokens") { parameters.tokens foreach (tokens =>
+    assert(parsable.allTokens === tokens)
+  )}
 
   test("Test parses") {
     parameters.testParses.foreach {

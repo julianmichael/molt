@@ -11,18 +11,18 @@ class RelativeIdentifierTestSuite extends ParsableTestSuite[RelativeIdentifier] 
 }
 
 object RelativeIdentifierTestParameters extends ParsableTestParameters[RelativeIdentifier] {
-  override val children = Set[Parsable[_]](
+  override val children = Some(Set[Parsable[_]](
     Terminal("up"),
-    Terminal("down"))
-  override val nonterminals = Set[Parsable[_]](
-    RelativeIdentifierParser)
-  override val tokens = Set("up", "down")
-  override val productions = Set[Production[Parsable[_]]](
+    Terminal("down")))
+  override val nonterminals = Some(Set[Parsable[_]](
+    RelativeIdentifierParser))
+  override val tokens = Some(Set("up", "down"))
+  override val productions = Some(Set[Production[Parsable[_]]](
     Production(RelativeIdentifierParser, List(Terminal("up"))),
-    Production(RelativeIdentifierParser, List(Terminal("down"))))
-  override val cnfProductions = Set[CNFProduction[Parsable[_]]](
+    Production(RelativeIdentifierParser, List(Terminal("down")))))
+  override val cnfProductions = Some(Set[CNFProduction[Parsable[_]]](
     Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("up"))),
-    Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("down"))))
+    Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("down")))))
   override val testParses = List[TestParse[RelativeIdentifier]](
     TestParse(
       Some("up"),

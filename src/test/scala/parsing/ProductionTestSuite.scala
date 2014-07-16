@@ -15,23 +15,23 @@ class ProductionPlusTestSuite extends ParsableTestSuite[List[String]] {
 
 object ProductionTestParameters extends ParsableTestParameters[Production[String]] {
   private[this] val plusTestParameters = new PlusTestParameters(ProductionParser.NonterminalSymbol)
-  override val children = Set(
+  override val children = Some(Set(
     ProductionParser.NonterminalSymbol,
     Terminal("->"),
     Plus(ProductionParser.NonterminalSymbol)) ++
-    plusTestParameters.children
-  override val nonterminals = Set(
+    plusTestParameters.children.get)
+  override val nonterminals = Some(Set(
     ProductionParser,
     Plus(ProductionParser.NonterminalSymbol)) ++
-    plusTestParameters.nonterminals
-  override val tokens = Set("->") ++ plusTestParameters.tokens
-  override val productions = Set(
+    plusTestParameters.nonterminals.get)
+  override val tokens = Some(Set("->") ++ plusTestParameters.tokens.get)
+  override val productions = Some(Set(
     Production(ProductionParser, List(ProductionParser.NonterminalSymbol, Terminal("->"), Plus(ProductionParser.NonterminalSymbol)))) ++
-    plusTestParameters.productions
-  override val cnfProductions = Set(
+    plusTestParameters.productions.get)
+  override val cnfProductions = Some(Set(
     Binary(NormalTag(ProductionParser), NormalTag(ProductionParser.NonterminalSymbol), ChunkedTag(List(Terminal("->"), Plus(ProductionParser.NonterminalSymbol)))),
     Binary(ChunkedTag(List(Terminal("->"), Plus(ProductionParser.NonterminalSymbol))), NormalTag(Terminal("->")), NormalTag(Plus(ProductionParser.NonterminalSymbol)))) ++
-    plusTestParameters.cnfProductions
+    plusTestParameters.cnfProductions.get)
   override val testParses = List(
     TestParse(
       Some("S -> NP VP"),
