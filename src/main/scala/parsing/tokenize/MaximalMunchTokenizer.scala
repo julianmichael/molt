@@ -16,7 +16,8 @@ case class MunchingPrefixWithBackup(
 class MaximalMunchTokenizer(allTokens: Set[String]) extends Tokenizer {
   override def tokenizations(s: String): Set[Seq[String]] = {
     val processor = new MunchingStateProcessor
-    val finalState: MunchingState = s.replaceAll("\\s+", " ").trim
+    val preprocessedString = s.replaceAll("\\s+", " ").trim
+    val finalState: MunchingState = preprocessedString
       .foldLeft(processor.initialState)(processor.processStateForChar _)
     processor.finalizeState(finalState)
     Set(processor.tokens)
@@ -43,16 +44,20 @@ class MaximalMunchTokenizer(allTokens: Set[String]) extends Tokenizer {
           if(isPrefix(prefix + c)) {
             if(isToken(prefix + c)) MunchingPrefixWithBackup(nonToken, prefix + c, prefix + c)
             else MunchingPrefix(nonToken, prefix + c)
+          } else if(isPrefix(c)) {
+            if(isToken(c)) MunchingPrefixWithBackup(nonToken + prefix, c, c)
+            else MunchingPrefix(nonToken + prefix, c)
           } else MunchingExtras(nonToken + prefix + c)
         case MunchingPrefixWithBackup(nonToken, prefix, backup) =>
           if(isPrefix(prefix + c)) {
             if(isToken(prefix + c)) MunchingPrefixWithBackup(nonToken, prefix + c, prefix + c)
             else MunchingPrefixWithBackup(nonToken, prefix + c, backup)
           } else {
-            tokens = tokens :+ nonToken :+ backup
-            val newPrefix = prefix.substring(backup.length)
+            if(nonToken.isEmpty) tokens = tokens :+ backup
+            else tokens = tokens :+ nonToken :+ backup
+            val toBeReprocessed = prefix.substring(backup.length) + c
             // backtrack and reprocess the uncommitted part
-            newPrefix.foldLeft(initialState)(processStateForChar _)
+            toBeReprocessed.foldLeft(initialState)(processStateForChar _)
           }
       }
     }
