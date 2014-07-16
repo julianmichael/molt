@@ -62,7 +62,11 @@ sealed trait Parsable[A] {
   final lazy val grammar: ContextFreeGrammar[Parsable[_]] = new ContextFreeGrammar[Parsable[_]](productions, lexicalCategories, Some(this))
 
   // automatically get the Parsable from a string; None if it can't be parsed
-  final def fromString(s: String) = grammar.parseTokens(tokenizer.tokenize(s)) flatMap fromAST
+  final def fromString(s: String) = for {
+    tokens <- tokenizer.tokenizations(s)
+    ast <- grammar.parseTokens(tokens)
+    symbolic <- fromAST(ast)
+  } yield symbolic
 
   final def fromStringUnique(s: String) = {
     val results = fromString(s)

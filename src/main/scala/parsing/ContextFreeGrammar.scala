@@ -27,7 +27,7 @@ class ContextFreeGrammar[A](
   lazy val nonterminals = productions.map(_.head)
 
   // parse using the CKY algorithm and a memoized function for the DP table.
-  def parseTokens(tokens: List[String]) = {
+  def parseTokens(tokens: Seq[String]) = {
     def getCellGen(recurse: (((Int, Int)) => Set[CNFAST[A]]))(levelOffset: (Int, Int)): Set[CNFAST[A]] = {
       val (level, offset) = levelOffset
       // the first entry-iteration determines either lexical or binary productions,

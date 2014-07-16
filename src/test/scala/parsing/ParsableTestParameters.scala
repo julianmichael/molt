@@ -49,7 +49,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           str <- string
           tok <- tokens
-        } yield assert(parsable.tokenizer.tokenize(str) === tok)
+        } yield assert(parsable.tokenizer.tokenizations(str).head === tok)
 
         /*
         def testASTSanity(ast: AST): Unit = {
@@ -79,7 +79,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           str <- string
           ast <- astree
         } yield assert(
-          parsable.grammar.parseTokens(parsable.tokenizer.tokenize(str)).head === ast)
+          parsable.grammar.parseTokens(parsable.tokenizer.tokenizations(str).head).head === ast)
 
         for {
           ast <- astree

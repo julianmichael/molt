@@ -26,8 +26,8 @@ class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
     else "No token overlap detected :)"
 
   // tokenization as described above
-  def tokenize(s: String) = {
-  // split on spaces. this is a reversible design decision.
+  override def tokenizations(s: String): Set[Seq[String]] = {
+    // split on spaces. this is a reversible design decision.
     val unTokenizedStringVector = s.split("\\s+").toList
 
     // to turn a single string into a list with the specified terminal split out
@@ -51,7 +51,7 @@ class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
       strs.flatMap(splitSingleString(_, tok))
     }
 
-    // we do the splitting for every terminal and get our final token list 
-    tokens.foldLeft(unTokenizedStringVector)(splitOutToken)
+    // we do the splitting for every terminal and get our final token list
+    Set(tokens.foldLeft(unTokenizedStringVector)(splitOutToken))
   }
 }
