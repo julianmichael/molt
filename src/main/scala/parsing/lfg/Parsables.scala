@@ -126,11 +126,11 @@ object Parsables {
       List(EquationParser, Terminal("AND"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
         right <- EquationParser.fromAST(c(2))
-      } yield Compound(Conjunction(left, right))),
+      } yield Compound(Conjunction(Set(left, right)))),
       List(EquationParser, Terminal("OR"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
         right <- EquationParser.fromAST(c(2))
-      } yield Compound(Conjunction(left, right))),
+      } yield Compound(Disjunction(Set(left, right)))),
       List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
         left <- ExpressionParser.fromAST(c(0))
         right <- ExpressionParser.fromAST(c(2))

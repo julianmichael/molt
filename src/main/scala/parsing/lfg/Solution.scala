@@ -256,11 +256,11 @@ object Solution {
       // delayed the branching until now for efficiency. Recurse because some of
       // the inner equations may be defining equations.
       case None => compoundEqs.headOption match {
-        case Some(head@Conjunction(l, r)) =>
-          solvePartial(fdesc - Compound(head) + l + r)
-        case Some(head@Disjunction(l, r)) => for {
+        case Some(head@Conjunction(eqs)) =>
+          solvePartial(fdesc - Compound(head) ++ eqs)
+        case Some(head@Disjunction(eqs)) => for {
           // this is where the branching happens!
-          disjunct <- List[Equation[AbsoluteIdentifier]](l, r).liftM[SolutionStateT]
+          disjunct <- eqs.toList.liftM[SolutionStateT]
           sol <- solvePartial(fdesc - Compound(head) + disjunct)
         } yield sol
         // no more compound equations left, so verify that the constraints hold

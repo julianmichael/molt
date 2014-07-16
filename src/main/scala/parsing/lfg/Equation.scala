@@ -33,24 +33,24 @@ case class Constraint[ID <: Identifier](
 
 sealed abstract class CompoundEquation[ID <: Identifier] {
   def negation: CompoundEquation[ID] = this match {
-    case Disjunction(l, r) => Conjunction(l.negation, r.negation)
-    case Conjunction(l, r) => Disjunction(l.negation, r.negation)
+    case Disjunction(eqs) => Conjunction(eqs.map(_.negation))
+    case Conjunction(eqs) => Disjunction(eqs.map(_.negation))
   }
   def ground(up: AbsoluteIdentifier, down: AbsoluteIdentifier)
     (implicit evidence: ID <:< RelativeIdentifier): CompoundEquation[AbsoluteIdentifier] = this match {
-    case Disjunction(l, r) => Disjunction(l.ground(up, down), r.ground(up, down))
-    case Conjunction(l, r) => Conjunction(l.ground(up, down), r.ground(up, down))
+    case Disjunction(eqs) => Disjunction(eqs.map(_.ground(up, down)))
+    case Conjunction(eqs) => Conjunction(eqs.map(_.ground(up, down)))
   }
   def identifiers: Set[ID] = this match {
-    case Disjunction(l, r) => l.identifiers ++ r.identifiers
-    case Conjunction(l, r) => l.identifiers ++ r.identifiers
+    case Disjunction(eqs) => eqs.map(_.identifiers).foldLeft(Set.empty[ID])(_ ++ _)
+    case Conjunction(eqs) => eqs.map(_.identifiers).foldLeft(Set.empty[ID])(_ ++ _)
   }
 }
 case class Disjunction[ID <: Identifier](
-  left: Equation[ID], right: Equation[ID])
+  eqs: Set[Equation[ID]])
   extends CompoundEquation[ID]
 case class Conjunction[ID <: Identifier](
-  left: Equation[ID], right: Equation[ID])
+  eqs: Set[Equation[ID]])
   extends CompoundEquation[ID]
 
 sealed abstract class DefiningEquation[ID <: Identifier] {
