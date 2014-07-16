@@ -27,31 +27,28 @@ class LFGTestSuite extends FunSuite {
                  a:       {   up DEF = no                   }}}
     """)
 
-  val productions = Set(
-    LFGProduction[String]("NP",
-      List(
-        ("N", parseForced[Specification]("{ up = down }"))
-      )
-    ),
-    LFGProduction[String]("NP",
-      List(
-        ("D", parseForced[Specification]("{ up = down }")),
-        ("N", parseForced[Specification]("{ up = down }"))
-      )
-    ),
-    LFGProduction[String]("VP",
-      List(
-        ("V", parseForced[Specification]("{ up = down }")),
-        ("NP", parseForced[Specification]("{ up OBJ = down }"))
-      )
-    ),
-    LFGProduction[String]("S",
-      List(
-        ("NP", parseForced[Specification]("{ up SUBJ = down }")),
-        ("VP", parseForced[Specification]("{ up = down }"))
-      )
-    )
-  )
+  val productions = parseForced[Set[LFGProduction[String]]]("""
+    {
+      NP -> [
+        N: { up = down }
+      ],
+
+      NP -> [
+        D: { up = down },
+        N: { up = down }
+      ],
+
+      VP -> [
+        V:  { up = down },
+        NP: { up OBJ = down }
+      ],
+
+      S -> [
+        NP: { up SUBJ = down },
+        VP: { up = down }
+      ]
+    }
+  """)
 
   val grammar = new LexicalFunctionalGrammar[String](
     productions = productions,

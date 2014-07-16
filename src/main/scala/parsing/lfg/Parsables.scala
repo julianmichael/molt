@@ -71,6 +71,27 @@ object Parsables {
 
   }
 
+  implicit object LFGProductionParser extends ComplexParsable[LFGProduction[String]] {
+
+    val ProductionChildParser = new ComplexParsable[(String, Specification)] {
+      override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[(String, Specification)])] = Map(
+        List(Alphabetical, Terminal(":"), SpecificationParser) -> (c => for {
+          label <- Alphabetical.fromAST(c(0))
+          spec <- SpecificationParser.fromAST(c(2))
+        } yield (label, spec))
+      )
+    }
+
+    val ProductionChildrenParser = new ListParser(ProductionChildParser)
+
+    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LFGProduction[String]])] = Map(
+      List(Alphabetical, Terminal("->"), ProductionChildrenParser) -> (c => for {
+        head <- Alphabetical.fromAST(c(0))
+        children <- ProductionChildrenParser.fromAST(c(2))
+      } yield LFGProduction[String](head, children))
+    )
+  }
+
   implicit object LFGLexicalCategoryParser extends ComplexParsable[LFGLexicalCategory[String]] {
 
     val LexicalEntrySetParser = new SetParser[LexicalEntry](LexicalEntryParser)
