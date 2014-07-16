@@ -1,6 +1,7 @@
 package parsing
 
 import scala.collection.mutable
+import parsing.tokenize._
 /*
  * Parsable contains most of the functionality and framework for any object
  * that we want to be able to parse from a string, so I make most of the notes
@@ -15,12 +16,12 @@ sealed trait Parsable[A] {
   val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])]
 
   // ----- May be overridden -----
+
   // These are the strings that will be regarded as individual words (beyond the
   // normal splitting behavior of the tokenizer). Terminals use these.
   // Non "terminal" lexical categories should not add to this. Tokens cannot be
   // ambiguous; i.e., they cannot overlap with each other so as to lead to
   // multiple possible tokenizations.
-  // TODO implement checking for token overlap in tokenizer
   // TODO come up with a better solution than JUST individual token symbols
   val tokens: Set[String] = Set()
 

@@ -26,8 +26,6 @@ class LFGTestSuite extends FunSuite {
 
                  a:       {   up DEF = no                   }}}
     """)
-  // TODO figure out how to make a natural whitespace processor that turns the
-  // spacing here into the braces---so no braces need to be written at all!
 
   val productions = Set(
     LFGProduction[String]("NP",

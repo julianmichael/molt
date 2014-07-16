@@ -15,16 +15,16 @@ class ContextFreeGrammar[A](
   val lexicalCategories: List[LexicalCategory[A]],
   val startSymbol: Option[A] = None) {
 
+  val warning = {
+    // TODO determine if there are cycles in the graph of unary productions. would cause inf. loop
+  }
+
   // we change the grammar to Chomsky Normal Form* for parsing
   // * with unary productions 
   lazy val cnfProductions = productions.flatMap(_.toCNF).toSet
 
   // nonterminals are just everything that appears at the head of a (non-lexical) production
   lazy val nonterminals = productions.map(_.head)
-
-  def validate = {
-    // TODO determine if there are cycles in the graph of unary productions. would cause inf. loop
-  }
 
   // parse using the CKY algorithm and a memoized function for the DP table.
   def parseTokens(tokens: List[String]) = {

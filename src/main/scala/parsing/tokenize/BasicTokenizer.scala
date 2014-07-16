@@ -1,20 +1,10 @@
-package parsing
-
-trait Tokenizer {
-  @Deprecated
-  def tokenize(s: String): List[String]
-  
-  // in progress; not implemented at all anywhere
-  def tokenizations(s: String): Set[Vector[String]] = ???
-}
-
+package parsing.tokenize
 
 // We find all of the terminal symbols and make sure we split on
 // them, then assume everything in between is contiguous. As in
 // the definition of propositional logic, we are restricting atoms
 // from containing any of our canonical terminal symbols.
 class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
-  // TODO warn if tokens can have overlap. leads to ambiguous tokenization
   private def getOverlaps(toks: List[String]): List[(String, String)] = toks match {
     case Nil => Nil
     case head :: tail => {
@@ -37,7 +27,7 @@ class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
 
   // tokenization as described above
   def tokenize(s: String) = {
-	// split on spaces. this is a reversible design decision.
+  // split on spaces. this is a reversible design decision.
     val unTokenizedStringVector = s.split("\\s+").toList
 
     // to turn a single string into a list with the specified terminal split out
