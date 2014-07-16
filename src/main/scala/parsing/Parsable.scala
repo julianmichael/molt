@@ -56,7 +56,7 @@ sealed trait Parsable[A] {
     children.foldLeft(tokens)(_ ++ _.allTokens)
 
   // TODO might want something more general than always the basic tokenizer
-  final lazy val tokenizer: Tokenizer = new BasicTokenizer(allTokens)
+  final lazy val tokenizer: Tokenizer = new MaximalMunchTokenizer(allTokens)
 
   // the grammar just requires the productions, lexical categories, and start symbol
   final lazy val grammar: ContextFreeGrammar[Parsable[_]] = new ContextFreeGrammar[Parsable[_]](productions, lexicalCategories, Some(this))
