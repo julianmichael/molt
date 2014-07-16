@@ -1,6 +1,7 @@
 To Do List
 ==========
 
+ * A method of doing CFG parsing with productions of the empty string.
  * A whitespace-sensitive preprocessor that can add in brackets or other
    delimiters where changes in scope are detected. (See the whitespace
    sensitivity in Haskell for inspiration.)
