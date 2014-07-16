@@ -9,7 +9,6 @@ To Do List
    This could be specified to the LexicalFunctionalGrammar or could be
    implemented in a layer on top if some users may not be concerned with
    coherence and completeness. (the latter seems like the attractive option.)
- * A more sophisticated ("maximal munch") tokenizer.
  * An example system for producing symbolic objects from F-Structures.
  * Investigate refactoring some of the "parsing" code into a "parsing.cfg"
    package
