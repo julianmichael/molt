@@ -1,7 +1,5 @@
 package parsing.lfg
 
-import parsing._
-
 sealed trait Identifier
 
 sealed abstract class RelativeIdentifier extends Identifier

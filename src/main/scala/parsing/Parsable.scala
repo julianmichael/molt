@@ -2,6 +2,7 @@ package parsing
 
 import scala.collection.mutable
 import parsing.tokenize._
+import parsing.cfg._
 /*
  * Parsable contains most of the functionality and framework for any object
  * that we want to be able to parse from a string, so I make most of the notes
@@ -43,12 +44,12 @@ sealed trait Parsable[A] {
 
   // automatically determine the productions to give the grammar from the
   // synchronous productions of the Parsable and its children
-  final lazy val processedSynchronousProductions: Map[Production[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] =
+  final lazy val processedSynchronousProductions: Map[CFGProduction[Parsable[_]], (List[AST[Parsable[_]]] => Option[A])] =
     synchronousProductions.map {
-      case (k, v) => (Production[Parsable[_]](this, k), v)
+      case (k, v) => (CFGProduction[Parsable[_]](this, k), v)
     }
 
-  final lazy val productions: Set[Production[Parsable[_]]] = {
+  final lazy val productions: Set[CFGProduction[Parsable[_]]] = {
     children.foldRight(processedSynchronousProductions.keySet)(_.productions ++ _)
   }
 
@@ -76,7 +77,7 @@ sealed trait Parsable[A] {
       None
   }
 
-  // parse from an abstract syntax tree returned by the parser 
+  // parse from an abstract syntax tree returned by the parser
   def fromAST(ast: AST[Parsable[_]]): Option[A]
 }
 
@@ -88,7 +89,7 @@ sealed trait Parsable[A] {
 trait ComplexParsable[A] extends Parsable[A] {
   final def fromAST(ast: AST[Parsable[_]]): Option[A] = ast match {
     case ASTNonterminal(head, children) => for {
-      p <- Some(Production(head, children.map(_.label)))
+      p <- Some(CFGProduction(head, children.map(_.label)))
       func <- processedSynchronousProductions.get(p)
       item <- func(children)
     } yield item

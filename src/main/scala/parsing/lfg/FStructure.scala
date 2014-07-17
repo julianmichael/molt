@@ -1,8 +1,5 @@
 package parsing.lfg
 
-import scalaz._
-import Scalaz._
-
 case class FStructure(
   map: Map[AbsoluteIdentifier, FStructurePart],
   root: AbsoluteIdentifier)

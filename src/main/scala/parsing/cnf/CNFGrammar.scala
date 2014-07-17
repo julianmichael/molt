@@ -1,5 +1,6 @@
-package parsing
+package parsing.cnf
 
+import parsing.LexicalCategory
 import util.Memoize
 // Contains everything we need in order to parse, and also parses!
 // We let the stuff that appears in the productions inform us what
@@ -10,21 +11,14 @@ import util.Memoize
 
 // The type parameter A is the type of symbol used in productions and ASTs. It
 // will typically be either String or Parsable[_].
-class ContextFreeGrammar[A](
-  val productions: Set[Production[A]],
+class CNFGrammar[A](
+  val productions: Set[CNFProduction[A]],
   val lexicalCategories: List[LexicalCategory[A]],
   val startSymbol: Option[A] = None) {
 
   val warning = {
     // TODO determine if there are cycles in the graph of unary productions. would cause inf. loop
   }
-
-  // we change the grammar to Chomsky Normal Form* for parsing
-  // * with unary productions 
-  lazy val cnfProductions = productions.flatMap(_.toCNF).toSet
-
-  // nonterminals are just everything that appears at the head of a (non-lexical) production
-  lazy val nonterminals = productions.map(_.head)
 
   // parse using the CKY algorithm and a memoized function for the DP table.
   def parseTokens(tokens: Seq[String]) = {
@@ -60,7 +54,7 @@ class ContextFreeGrammar[A](
               }
               rootEntries
             }
-            val binaryEntries = cnfProductions.flatMap {
+            val binaryEntries = productions.flatMap {
               case Binary(label, left, right) => {
                 getBinaryEntries(label, left, right)
               }
@@ -80,7 +74,7 @@ class ContextFreeGrammar[A](
       def unaryEntriesForEntries(entries: Set[CNFAST[A]]): Set[CNFAST[A]] = {
         if (entries.isEmpty) Set()
         else {
-          val unaryEntries: Set[CNFAST[A]] = cnfProductions.flatMap {
+          val unaryEntries: Set[CNFAST[A]] = productions.flatMap {
             case Unary(NormalTag(label), child) => {
               val validEntries = entries.filter(_.label == child)
               val rootEntries: Set[CNFAST[A]] =
@@ -96,8 +90,7 @@ class ContextFreeGrammar[A](
     }
 
     lazy val getCell: (((Int, Int)) => Set[CNFAST[A]]) = Memoize(getCellGen(getCell))
-    val topCell = getCell(tokens.length - 1, 0)
-    val validParses = topCell.map(_.dechomskify).flatten
+    val validParses = getCell(tokens.length - 1, 0)
     val validProperlyStartingParses = startSymbol match {
       case None => validParses
       case Some(sym) => validParses.filter(_.label == sym)

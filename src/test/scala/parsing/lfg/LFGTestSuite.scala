@@ -1,10 +1,11 @@
 package parsing.lfg
 
 import org.scalatest.FunSuite
-import Parsables._
+import parsing._
 import parsing.ParseCommands._
-import parsing.Parsables._
 import parsing.GenericParsables._
+import parsing.ParserHelpers._
+import parsing.lfg.Parsables._
 
 class LFGTestSuite extends FunSuite {
 

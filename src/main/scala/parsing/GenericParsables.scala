@@ -2,22 +2,6 @@ package parsing
 
 import parsing.ParserHelpers._
 
-object Parsables {
-
-  implicit object ProductionParser extends ComplexParsable[Production[String]] {
-
-    // for convenience in ProductionParser
-    val NonterminalSymbol = new ParsableLexicalCategory(w => w != "->")
-
-    val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Production[String]])] = Map(
-      List(NonterminalSymbol, Terminal("->"), Plus(NonterminalSymbol)) ->
-        (c => for {
-          head <- NonterminalSymbol.fromAST(c(0))
-          children <- Plus(NonterminalSymbol).fromAST(c(2))
-        } yield Production(head, children))
-      )
-  }
-}
 object GenericParsables {
 
   /**********

@@ -1,10 +1,7 @@
 package parsing.lfg
 
-import parsing.AST
-import parsing.ASTNonterminal
-import parsing.ASTTerminal
-import parsing.Production
-import parsing.ContextFreeGrammar
+import parsing._
+import parsing.cfg._
 
 class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
@@ -15,7 +12,7 @@ class LexicalFunctionalGrammar[A](
   private[this] val cfGrammar =
     new ContextFreeGrammar[A](cfgProductions, lexicalCategories.toList, startSymbol)
 
-  private[this] val productionToSetOfChildSpecifications: Map[Production[A], Set[List[Specification]]] =
+  private[this] val productionToSetOfChildSpecifications: Map[CFGProduction[A], Set[List[Specification]]] =
     productions.groupBy(_.cfgProduction).map {
       case (k, lfgProductions) => (k, lfgProductions.map {
         case LFGProduction(_, eqs) => eqs.map(_._2)
@@ -24,7 +21,7 @@ class LexicalFunctionalGrammar[A](
 
   private[this] def annotations(ast: AST[A]): Set[AnnotatedAST[A]] = ast match {
     case ASTNonterminal(head, children) => {
-      val cfgProduction = Production(head, children.map(_.label))
+      val cfgProduction = CFGProduction(head, children.map(_.label))
       val specifications = productionToSetOfChildSpecifications(cfgProduction)
       val childrenAnnotationSets = children.map(annotations _)
       val annotationChoices = childrenAnnotationSets.foldRight(

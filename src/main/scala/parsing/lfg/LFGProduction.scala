@@ -1,10 +1,10 @@
 package parsing.lfg
 
-import parsing.Production
+import parsing.cfg.CFGProduction
 
 case class LFGProduction[+A](
   head: A,
   children: List[(A, Specification)]) {
 
-  val cfgProduction: Production[A] = Production(head, children.map(_._1))
+  val cfgProduction: CFGProduction[A] = CFGProduction(head, children.map(_._1))
 }

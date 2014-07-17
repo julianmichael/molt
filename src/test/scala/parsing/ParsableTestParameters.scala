@@ -1,6 +1,8 @@
 package parsing
 
 import org.scalatest.FunSuite
+import parsing.cfg.CFGProduction
+import parsing.cnf.CNFProduction
 
 case class TestParse[A](
     string: Option[String],
@@ -12,7 +14,7 @@ trait ParsableTestParameters[A] {
   def children: Option[Set[Parsable[_]]]
   def nonterminals: Option[Set[Parsable[_]]]
   def tokens: Option[Set[String]]
-  def productions: Option[Set[Production[Parsable[_]]]]
+  def productions: Option[Set[CFGProduction[Parsable[_]]]]
   def cnfProductions: Option[Set[CNFProduction[Parsable[_]]]]
   def testParses: List[TestParse[A]]
 }

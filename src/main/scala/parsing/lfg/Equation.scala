@@ -1,7 +1,5 @@
 package parsing.lfg
 
-import parsing._
-
 sealed abstract class Equation[ID <: Identifier] {
   def negation: Equation[ID] = this match {
     case Compound(ce) => Compound(ce.negation)

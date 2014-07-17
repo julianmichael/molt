@@ -1,7 +1,5 @@
 package parsing.lfg
 
-import parsing._
-
 sealed abstract class Expression[ID <: Identifier] {
   def ground(up: AbsoluteIdentifier, down: AbsoluteIdentifier)
     (implicit evidence: ID <:< RelativeIdentifier): Expression[AbsoluteIdentifier] = this match {

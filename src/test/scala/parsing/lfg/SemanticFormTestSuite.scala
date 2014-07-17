@@ -1,9 +1,11 @@
 package parsing.lfg
 
 import parsing._
-import parsing.Parsables._
-import parsing.lfg.Parsables._
+import parsing.ParseCommands._
+import parsing.GenericParsables._
 import parsing.ParserHelpers._
+import parsing.lfg.Parsables._
+import parsing.cnf._
 
 class SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
   override val parameters = SemanticFormTestParameters
