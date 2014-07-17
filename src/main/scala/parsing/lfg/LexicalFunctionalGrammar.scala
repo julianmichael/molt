@@ -43,7 +43,7 @@ class LexicalFunctionalGrammar[A](
     } yield AnnotatedTerminal(head, (token, spec))
   }
 
-  def parseTokens(tokens: List[String]): Set[FStructure] = for {
+  def parseTokens(tokens: Seq[String]): Set[FStructure] = for {
     ast <- cfGrammar.parseTokens(tokens)
     annotatedAST <- annotations(ast)
     (fdesc, rootID) = annotatedAST.fDescription

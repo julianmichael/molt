@@ -1,6 +1,7 @@
 package parsing.cnf
 
 import parsing.LexicalCategory
+import parsing.Grammar
 import util.Memoize
 // Contains everything we need in order to parse, and also parses!
 // We let the stuff that appears in the productions inform us what

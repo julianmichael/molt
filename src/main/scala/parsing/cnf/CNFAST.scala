@@ -1,6 +1,7 @@
 package parsing.cnf
 
 import parsing._
+import parsing.cfg._
 /*
  * AST with only binary and unary productions (encoded in
  * the types) to be used in parsing a CNF* grammar.
