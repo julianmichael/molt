@@ -2,10 +2,9 @@ package parsing.lfg
 
 import parsing._
 import parsing.ParseCommands._
-import parsing.GenericParsables._
-import parsing.ParserHelpers._
-
-import parsing.lfg.Parsables._
+import parsing.cfg.GenericParsables._
+import parsing.cfg.CFGParserHelpers._
+import parsing.lfg.LFGParsables._
 import parsing.cnf._
 import parsing.cfg._
 
@@ -15,16 +14,16 @@ class RelativeIdentifierTestSuite extends ParsableTestSuite[RelativeIdentifier] 
 }
 
 object RelativeIdentifierTestParameters extends ParsableTestParameters[RelativeIdentifier] {
-  override val children = Some(Set[Parsable[_]](
+  override val children = Some(Set[CFGParsable[_]](
     Terminal("up"),
     Terminal("down")))
-  override val nonterminals = Some(Set[Parsable[_]](
+  override val nonterminals = Some(Set[CFGParsable[_]](
     RelativeIdentifierParser))
   override val tokens = Some(Set("up", "down"))
-  override val productions = Some(Set[CFGProduction[Parsable[_]]](
+  override val productions = Some(Set[CFGProduction[CFGParsable[_]]](
     CFGProduction(RelativeIdentifierParser, List(Terminal("up"))),
     CFGProduction(RelativeIdentifierParser, List(Terminal("down")))))
-  override val cnfProductions = Some(Set[CNFProduction[Parsable[_]]](
+  override val cnfProductions = Some(Set[CNFProduction[CFGParsable[_]]](
     Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("up"))),
     Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("down")))))
   override val testParses = List[TestParse[RelativeIdentifier]](

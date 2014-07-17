@@ -2,9 +2,10 @@ package parsing.lfg
 
 import parsing._
 import parsing.ParseCommands._
-import parsing.GenericParsables._
-import parsing.ParserHelpers._
-import parsing.lfg.Parsables._
+import parsing.cfg.CFGParsable
+import parsing.cfg.GenericParsables._
+import parsing.cfg.CFGParserHelpers._
+import parsing.lfg.LFGParsables._
 import parsing.cnf._
 
 class SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
@@ -13,13 +14,13 @@ class SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
 }
 
 object SemanticFormTestParameters extends ParsableTestParameters[SemanticForm] {
-  override val children = Some(Set[Parsable[_]](
+  override val children = Some(Set[CFGParsable[_]](
     Alphabetical,
     Terminal("<"),
     FeatureListParser,
     Terminal(">")) ++
     FeatureListParser.children)
-  override val nonterminals = Some(Set[Parsable[_]](
+  override val nonterminals = Some(Set[CFGParsable[_]](
     SemanticFormParser,
     FeatureListParser) ++
     FeatureListParser.grammar.nonterminals)

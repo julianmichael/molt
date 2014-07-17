@@ -1,10 +1,10 @@
 package parsing
 
-import ParserHelpers._
 import parsing.cfg._
 import parsing.cnf._
+import parsing.cfg.CFGParserHelpers._
 
-class PlusTestParameters[A](parsable: Parsable[A]) extends ParsableTestParameters[List[A]] {
+class PlusTestParameters[A](parsable: CFGParsable[A]) extends ParsableTestParameters[List[A]] {
   override val children = Some(Set(
     parsable) ++
     parsable.children)

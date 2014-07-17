@@ -1,29 +1,31 @@
 package parsing
 
 import org.scalatest.FunSuite
-import parsing.cfg.CFGProduction
-import parsing.cnf.CNFProduction
 import parsing.ParseCommands._
+import parsing.cfg.CFGParserHelpers._
+import parsing.cfg.CFGParsables._
+import parsing.cfg._
+import parsing.cnf._
 
 case class TestParse[A](
     string: Option[String],
     tokens: Option[List[String]],
-    ast: Option[AST[Parsable[_]]],
+    ast: Option[AST[CFGParsable[_]]],
     symbolic: Option[A])
 
 trait ParsableTestParameters[A] {
-  def children: Option[Set[Parsable[_]]]
-  def nonterminals: Option[Set[Parsable[_]]]
+  def children: Option[Set[CFGParsable[_]]]
+  def nonterminals: Option[Set[CFGParsable[_]]]
   def tokens: Option[Set[String]]
-  def productions: Option[Set[CFGProduction[Parsable[_]]]]
-  def cnfProductions: Option[Set[CNFProduction[Parsable[_]]]]
+  def productions: Option[Set[CFGProduction[CFGParsable[_]]]]
+  def cnfProductions: Option[Set[CNFProduction[CFGParsable[_]]]]
   def testParses: List[TestParse[A]]
 }
 
 abstract class ParsableTestSuite[A] extends FunSuite {
 
   val parameters: ParsableTestParameters[A]
-  val parsable: Parsable[A]
+  val parsable: CFGParsable[A]
 
   test(s"children") { parameters.children foreach (children => 
     assert(parsable.children === children)

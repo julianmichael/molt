@@ -1,11 +1,9 @@
 package parsing.cfg
 
 import parsing._
-import parsing.GenericParsables._
 import parsing.ParseCommands._
-import parsing.ParserHelpers._
-import parsing.cfg._
 import parsing.cfg.CFGParsables._
+import parsing.cfg.CFGParserHelpers._
 import parsing.cnf._
 
 class CFGProductionTestSuite extends ParsableTestSuite[CFGProduction[String]] {
