@@ -3,9 +3,7 @@ package parsing.lfg
 import parsing.LexicalCategory
 
 trait LFGLexicalCategory[S] extends LexicalCategory[S] {
-  val symbol: S
   def specifications(s: String): Set[Specification]
-  def member(s: String): Boolean
 }
 
 case class BasicLFGLexicalCategory[S](

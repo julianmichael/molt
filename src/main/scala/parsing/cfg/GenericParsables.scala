@@ -1,4 +1,4 @@
-package parsing
+package parsing.cfg
 
 import parsing.ParserHelpers._
 
@@ -9,7 +9,7 @@ object GenericParsables {
    * stuff!
 **********/
 
-  class SetParser[A](inner: Parsable[A]) extends ComplexParsable[Set[A]] {
+  class SetParser[A](inner: Parsable[A]) extends ComplexCFGParsable[Set[A]] {
     private val InnerList = DelimitedList(",", inner)
     override val synchronousProductions: Map[List[Parsable[_]], List[AST[Parsable[_]]] => Option[Set[A]]] = Map(
       List(Terminal("{"), Terminal("}")) -> (c => Some(Set.empty[A])),
@@ -20,7 +20,7 @@ object GenericParsables {
   }
   implicit def parserToSetParser[A](implicit parser: Parsable[A]) = new SetParser[A](parser)
 
-  class ListParser[A](inner: Parsable[A]) extends ComplexParsable[List[A]] {
+  class ListParser[A](inner: Parsable[A]) extends ComplexCFGParsable[List[A]] {
     private val InnerList = DelimitedList(",", inner)
     override val synchronousProductions: Map[List[Parsable[_]], List[AST[Parsable[_]]] => Option[List[A]]] = Map(
       List(Terminal("["), Terminal("]")) -> (c => Some(List.empty[A])),
@@ -31,9 +31,9 @@ object GenericParsables {
   }
   implicit def parserToListParser[A](implicit parser: Parsable[A]) = new ListParser[A](parser)
 
-  class MapParser[K, V](key: Parsable[K], value: Parsable[V]) extends ComplexParsable[Map[K, V]] {
+  class MapParser[K, V](key: Parsable[K], value: Parsable[V]) extends ComplexCFGParsable[Map[K, V]] {
 
-    private val KeyValPair = new ComplexParsable[(K, V)] {
+    private val KeyValPair = new ComplexCFGParsable[(K, V)] {
       override val synchronousProductions: Map[List[Parsable[_]], List[AST[Parsable[_]]] => Option[(K, V)]] = Map(
         List(key, Terminal("->"), value) -> (c => for {
           k <- key.fromAST(c(0))

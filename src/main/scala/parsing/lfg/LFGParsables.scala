@@ -1,10 +1,11 @@
 package parsing.lfg
 import parsing._
-import parsing.GenericParsables._
-import parsing.ParserHelpers._
+import parsing.cfg._
+import parsing.cfg.GenericParsables._
+import parsing.cfg.CFGParserHelpers._
 import parsing.cfg.CFGParsables._
 
-object Parsables {
+object LFGParsables {
 
   object FStructureParser {
     def makeString(fstruct: FStructure): String = fstruct match { case FStructure(map, root) =>
@@ -70,10 +71,10 @@ object Parsables {
 
   }
 
-  implicit object LFGProductionParser extends ComplexParsable[LFGProduction[String]] {
+  implicit object LFGProductionParser extends ComplexCFGParsable[LFGProduction[String]] {
 
-    val ProductionChildParser = new ComplexParsable[(String, Specification)] {
-      override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[(String, Specification)])] = Map(
+    val ProductionChildParser = new ComplexCFGParsable[(String, Specification)] {
+      override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[(String, Specification)])] = Map(
         List(Alphabetical, Terminal(":"), SpecificationParser) -> (c => for {
           label <- Alphabetical.fromAST(c(0))
           spec <- SpecificationParser.fromAST(c(2))
@@ -83,7 +84,7 @@ object Parsables {
 
     val ProductionChildrenParser = new ListParser(ProductionChildParser)
 
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LFGProduction[String]])] = Map(
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[LFGProduction[String]])] = Map(
       List(Alphabetical, Terminal("->"), ProductionChildrenParser) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
         children <- ProductionChildrenParser.fromAST(c(2))
@@ -91,11 +92,11 @@ object Parsables {
     )
   }
 
-  implicit object LFGLexicalCategoryParser extends ComplexParsable[LFGLexicalCategory[String]] {
+  implicit object LFGLexicalCategoryParser extends ComplexCFGParsable[LFGLexicalCategory[String]] {
 
     val LexicalEntrySetParser = new SetParser[LexicalEntry](LexicalEntryParser)
 
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LFGLexicalCategory[String]])] = Map(
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[LFGLexicalCategory[String]])] = Map(
       List(Alphabetical, Terminal(":"), LexicalEntrySetParser) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
         entries <- LexicalEntrySetParser.fromAST(c(2))
@@ -105,8 +106,8 @@ object Parsables {
 
   implicit object SpecificationParser extends SetParser(EquationParser)
 
-  implicit object LexicalEntryParser extends ComplexParsable[LexicalEntry] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[LexicalEntry])] = Map(
+  implicit object LexicalEntryParser extends ComplexCFGParsable[LexicalEntry] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[LexicalEntry])] = Map(
       List(Alphabetical) -> (c => for {
         word <- Alphabetical.fromAST(c(0))
       } yield (word, Set[Equation[RelativeIdentifier]]())),
@@ -117,8 +118,8 @@ object Parsables {
     )
   }
 
-  implicit object EquationParser extends ComplexParsable[Equation[RelativeIdentifier]] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
+  implicit object EquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
       List(Terminal("NOT"), EquationParser) -> (c => for {
         negated <- EquationParser.fromAST(c(1))
       } yield negated.negation),
@@ -152,8 +153,8 @@ object Parsables {
     )
   }
 
-  implicit object ExpressionParser extends ComplexParsable[Expression[RelativeIdentifier]] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[Expression[RelativeIdentifier]])] = Map(
+  implicit object ExpressionParser extends ComplexCFGParsable[Expression[RelativeIdentifier]] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Expression[RelativeIdentifier]])] = Map(
       List(IdentifyingExpressionParser) -> (c => for {
         exp <- IdentifyingExpressionParser.fromAST(c(0))
       } yield FunctionalExpression(exp)),
@@ -167,8 +168,8 @@ object Parsables {
     )
   }
 
-  implicit object IdentifyingExpressionParser extends ComplexParsable[IdentifyingExpression[RelativeIdentifier]] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[IdentifyingExpression[RelativeIdentifier]])] = Map(
+  implicit object IdentifyingExpressionParser extends ComplexCFGParsable[IdentifyingExpression[RelativeIdentifier]] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[IdentifyingExpression[RelativeIdentifier]])] = Map(
       List(RelativeIdentifierParser) -> (c => for {
         id <- RelativeIdentifierParser.fromAST(c(0))
       } yield BareIdentifier(id)),
@@ -179,8 +180,8 @@ object Parsables {
     )
   }
 
-  implicit object SemanticFormParser extends ComplexParsable[SemanticForm] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[SemanticForm])] = Map(
+  implicit object SemanticFormParser extends ComplexCFGParsable[SemanticForm] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[SemanticForm])] = Map(
       List(Alphabetical) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
       } yield new SemanticForm(head, Nil)),
@@ -196,8 +197,8 @@ object Parsables {
     }
   }
 
-  implicit object RelativeIdentifierParser extends ComplexParsable[RelativeIdentifier] {
-    override val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[RelativeIdentifier])] = Map(
+  implicit object RelativeIdentifierParser extends ComplexCFGParsable[RelativeIdentifier] {
+    override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[RelativeIdentifier])] = Map(
       List(Terminal("up")) -> (c => Some(Up)),
       List(Terminal("down")) -> (c => Some(Down))
     )
@@ -205,6 +206,7 @@ object Parsables {
 
   object FeatureListParser extends DelimitedList[Feature](",", Alphabetical)
 
-  object ValueCategory extends
-    ParsableLexicalCategory(s => (s != "up" && s != "down" && s.forall(_.isLetter)))
+  object ValueCategory extends CFGParsableLexicalCategory {
+    def member(s: String) = s != "up" && s != "down" && s.forall(_.isLetter)
+  }
 }

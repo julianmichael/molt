@@ -14,14 +14,14 @@ import util.Memoize
 class CNFGrammar[A](
   val productions: Set[CNFProduction[A]],
   val lexicalCategories: List[LexicalCategory[A]],
-  val startSymbol: Option[A] = None) {
+  val startSymbol: Option[A] = None) extends Grammar[CNFAST[A]] {
 
   val warning = {
     // TODO determine if there are cycles in the graph of unary productions. would cause inf. loop
   }
 
   // parse using the CKY algorithm and a memoized function for the DP table.
-  def parseTokens(tokens: Seq[String]) = {
+  override def parseTokens(tokens: Seq[String]) = {
     def getCellGen(recurse: (((Int, Int)) => Set[CNFAST[A]]))(levelOffset: (Int, Int)): Set[CNFAST[A]] = {
       val (level, offset) = levelOffset
       // the first entry-iteration determines either lexical or binary productions,

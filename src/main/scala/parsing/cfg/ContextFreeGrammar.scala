@@ -1,5 +1,6 @@
 package parsing.cfg
 
+import parsing.Grammar
 import parsing.LexicalCategory
 import parsing.cnf._
 
@@ -8,7 +9,7 @@ import parsing.cnf._
 class ContextFreeGrammar[A](
   val productions: Set[CFGProduction[A]],
   val lexicalCategories: List[LexicalCategory[A]],
-  val startSymbol: Option[A] = None) {
+  val startSymbol: Option[A] = None) extends Grammar[AST[A]] {
 
   // we change the grammar to Chomsky Normal Form* for parsing
   // * with unary productions 
@@ -19,7 +20,7 @@ class ContextFreeGrammar[A](
 
   lazy val cnfGrammar = new CNFGrammar[A](cnfProductions, lexicalCategories)
 
-  def parseTokens(tokens: Seq[String]) = {
+  override def parseTokens(tokens: Seq[String]) = {
     val cnfParses = cnfGrammar.parseTokens(tokens)
     val validParses = cnfParses.map(_.dechomskify).flatten
     val validProperlyStartingParses = startSymbol match {

@@ -3,6 +3,7 @@ package parsing
 import org.scalatest.FunSuite
 import parsing.cfg.CFGProduction
 import parsing.cnf.CNFProduction
+import parsing.ParseCommands._
 
 case class TestParse[A](
     string: Option[String],
@@ -96,7 +97,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           str <- string
           sym <- symbol
-        } yield assert(parsable.fromString(str) === Set(sym))
+        } yield assert(parse(str)(parsable) === Set(sym))
 
       }
     }

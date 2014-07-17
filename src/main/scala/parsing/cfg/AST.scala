@@ -1,4 +1,4 @@
-package parsing
+package parsing.cfg
 
 sealed abstract class AST[A] {
   val label: A = this match {

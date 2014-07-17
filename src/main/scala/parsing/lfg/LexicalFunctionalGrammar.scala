@@ -6,7 +6,7 @@ import parsing.cfg._
 class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
   val lexicalCategories: Set[LFGLexicalCategory[A]],
-  val startSymbol: Option[A] = None) {
+  val startSymbol: Option[A] = None) extends Grammar[FStructure] {
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
   private[this] val cfGrammar =

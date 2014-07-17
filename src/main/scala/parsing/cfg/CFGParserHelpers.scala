@@ -1,4 +1,4 @@
-package parsing
+package parsing.cfg
 
 /*****
  * Parser Helpers are convenience classes to be used when making parsers. They
@@ -17,10 +17,25 @@ package parsing
  * use them.
 *****/
 
-object ParserHelpers {
+object CFGParserHelpers {
 
-  case class Plus[A](parsable: Parsable[A]) extends ComplexParsable[List[A]] {
-    final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
+  // lexical category consisting only of one string
+  case class Terminal(token: String) extends CFGParsableLexicalCategory {
+    override def member(s: String) = s == token
+    override val tokens = Set(token)
+  }
+
+  class RegexLexicalCategory(regex: String) extends CFGParsableLexicalCategory {
+    override def member(s: String) = s.matches(regex)
+  }
+  object RegexLexicalCategory {
+    def apply(regex: String): RegexLexicalCategory = new RegexLexicalCategory(regex)
+  }
+
+  case object Alphabetical extends RegexLexicalCategory("[a-zA-Z]+")
+
+  case class Plus[A](parsable: CFGParsable[A]) extends ComplexCFGParsable[List[A]] {
+    final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[List[A]])] = Map(
       List(parsable, this) -> ( c =>
         for {
           head <- parsable.fromAST(c(0))
@@ -33,8 +48,8 @@ object ParserHelpers {
       ))
   }
 
-  case class DelimitedList[A](delimiter: String, parsable: Parsable[A]) extends ComplexParsable[List[A]] {
-    final val synchronousProductions: Map[List[Parsable[_]], (List[AST[Parsable[_]]] => Option[List[A]])] = Map(
+  case class DelimitedList[A](delimiter: String, parsable: CFGParsable[A]) extends ComplexCFGParsable[List[A]] {
+    final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[List[A]])] = Map(
       List(parsable, Terminal(delimiter), this) -> ( c =>
         for {
           head <- parsable.fromAST(c(0))
