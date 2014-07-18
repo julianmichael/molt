@@ -125,10 +125,12 @@ object LFGParsables {
       } yield negated.negation),
       List(EquationParser, Terminal("AND"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
+        if !(left.isInstanceOf[Compound[RelativeIdentifier]])
         right <- EquationParser.fromAST(c(2))
       } yield Compound(Conjunction(Set(left, right)))),
       List(EquationParser, Terminal("OR"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
+        if !(left.isInstanceOf[Compound[RelativeIdentifier]])
         right <- EquationParser.fromAST(c(2))
       } yield Compound(Disjunction(Set(left, right)))),
       List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
