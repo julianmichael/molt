@@ -22,7 +22,7 @@ object CFGProduction {
       label: CNFTag[A],
       symbols: List[A]): Set[CNFProduction[A]] = symbols match {
     case Nil                    => throw new AssertionError("Production's children are null")
-    case Empty :: Nil           => Set(ZeroEmpty[A](label))
+    case Empty :: Nil           => Set(SingleEmpty[A](label))
     case child :: Nil           => Set(Unary[A](NormalTag[A](head), NormalTag[A](child)))
     case Empty :: Empty :: Nil  => Set(DoubleEmpty[A](label))
     case left :: Empty :: Nil   => Set(RightEmpty[A](label, NormalTag[A](left)))

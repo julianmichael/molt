@@ -18,8 +18,12 @@ class CNFGrammar[A](
   val startSymbol: Option[A] = None) extends Grammar[CNFAST[A]] {
 
   val warning = {
-    // TODO determine if there are cycles in the graph of unary productions. would cause inf. loop
+    // TODO determine if there are cycles in the graph of 0-ary and unary productions. would cause
+    // inf. loop
   }
+
+  // all of the ASTs that are valid parses of the empty string
+  val emptyStringTrees = ???
 
   // parse using the CKY algorithm and a memoized function for the DP table.
   override def parseTokens(tokens: Seq[String]) = {
