@@ -8,7 +8,7 @@ case class CFGProduction[+A](
   children: List[A]) {
 
   val toCNF: List[CNFProduction[A]] = {
-    collapseProduction(NormalTag[A](head), children).toList
+    CFGProduction.toCNF[A](this)
   }
 
 }
