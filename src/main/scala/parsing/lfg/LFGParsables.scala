@@ -120,15 +120,15 @@ object LFGParsables {
 
   implicit object EquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
     override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
-      List(Terminal("NOT"), EquationParser) -> (c => for {
+      List(Terminal("!"), EquationParser) -> (c => for {
         negated <- EquationParser.fromAST(c(1))
       } yield negated.negation),
-      List(EquationParser, Terminal("AND"), EquationParser) -> (c => for {
+      List(EquationParser, Terminal("&"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
         if !(left.isInstanceOf[Compound[RelativeIdentifier]])
         right <- EquationParser.fromAST(c(2))
       } yield Compound(Conjunction(Set(left, right)))),
-      List(EquationParser, Terminal("OR"), EquationParser) -> (c => for {
+      List(EquationParser, Terminal("|"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
         if !(left.isInstanceOf[Compound[RelativeIdentifier]])
         right <- EquationParser.fromAST(c(2))
@@ -137,7 +137,7 @@ object LFGParsables {
         left <- ExpressionParser.fromAST(c(0))
         right <- ExpressionParser.fromAST(c(2))
       } yield Defining(Assignment(left, right))),
-      List(ExpressionParser, Terminal("IN"), ExpressionParser) -> (c => for {
+      List(ExpressionParser, Terminal("<"), ExpressionParser) -> (c => for {
         elem <- ExpressionParser.fromAST(c(0))
         cont <- ExpressionParser.fromAST(c(2))
       } yield Defining(Containment(elem, cont))),

@@ -5,6 +5,16 @@ sealed abstract class AST[A] {
     case ASTNonterminal(head, _) => head
     case ASTTerminal(head, _) => head
   }
+
+  def prettyString: String = this match {
+    case ASTNonterminal(head, children) => {
+      val childString = children.flatMap(child => {
+        child.prettyString.split("\n").map(x => s"\t$x")
+      }).mkString("\n")
+      s"$head\n$childString"
+    }
+    case ASTTerminal(head, token) => s"$head\t$token"
+  }
 }
 // TODO children should be nonempty list.......maybe? actually maybe not!
 // depends on how I want to implement producing the empty string. if at all.

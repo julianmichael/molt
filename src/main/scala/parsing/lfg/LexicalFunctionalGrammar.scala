@@ -9,7 +9,7 @@ class LexicalFunctionalGrammar[A](
   val startSymbol: Option[A] = None) extends Grammar[FStructure] {
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
-  private[this] val cfGrammar =
+  val cfGrammar =
     new ContextFreeGrammar[A](cfgProductions, lexicalCategories.toList, startSymbol)
 
   private[this] val productionToSetOfChildSpecifications: Map[CFGProduction[A], Set[List[Specification]]] =
