@@ -8,6 +8,8 @@ To Do List
    sensitivity in Haskell for inspiration.) It will take in "indentation
    indicator tokens" that will trigger the mechanism. (like Haskell keywords)
 
+ * A way to specify wildcards and do basic functional uncertainty
+
  * A system for requiring certain coherence and completeness conditions on
    F-Structures: this requires a notion of "governable" grammatical functions.
    This could be specified to the LexicalFunctionalGrammar or could be
