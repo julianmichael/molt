@@ -85,6 +85,7 @@ class CNFGrammar[A](
                 nullable = nullable + entry
                 todo = todo + entry
               }
+              case _ => ()
             }
           }
           if(y == subtree.label) {
@@ -94,6 +95,7 @@ class CNFGrammar[A](
                 nullable = nullable + entry
                 todo = todo + entry
               }
+              case _ => ()
             }
           }
         }
@@ -176,6 +178,6 @@ class CNFGrammar[A](
   override def parseTokens(tokens: Seq[String]): Set[CNFAST[A]] = {
     val table = cykTable(tokens)
     val extract = makeExtract(tokens, table)
-    startSymbols.map(CNFNormalTag(_)).flatMap(extract(_, tokens.length - 1, 0))
+    startSymbols.map(CNFNormalTag(_)).flatMap(sym => extract((sym, tokens.length - 1, 0)))
   }
 }

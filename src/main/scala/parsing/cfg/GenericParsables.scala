@@ -13,8 +13,11 @@ object GenericParsables {
     private val InnerList = DelimitedList(",", inner)
     override val synchronousProductions: Map[List[CFGParsable[_]], List[AST[CFGParsable[_]]] => Option[Set[A]]] = Map(
       List(Terminal("{"), Terminal("}")) -> (c => Some(Set.empty[A])),
-      List(Terminal("{"), InnerList, Terminal("}")) -> (c => for {
+      List(Optional(Terminal("{")), InnerList, Optional(Terminal("}"))) -> (c => for {
         list <- InnerList.fromAST(c(1))
+        leftBrace <- Optional(Terminal("{")).fromAST(c(0))
+        rightBrace <- Optional(Terminal("}")).fromAST(c(2))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield list.toSet)
     )
   }
@@ -24,8 +27,11 @@ object GenericParsables {
     private val InnerList = DelimitedList(",", inner)
     override val synchronousProductions: Map[List[CFGParsable[_]], List[AST[CFGParsable[_]]] => Option[List[A]]] = Map(
       List(Terminal("["), Terminal("]")) -> (c => Some(List.empty[A])),
-      List(Terminal("["), InnerList, Terminal("]")) -> (c => for {
+      List(Optional(Terminal("[")), InnerList, Optional(Terminal("]"))) -> (c => for {
         list <- InnerList.fromAST(c(1))
+        leftBrace <- Optional(Terminal("[")).fromAST(c(0))
+        rightBrace <- Optional(Terminal("]")).fromAST(c(2))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield list)
     )
   }
@@ -45,8 +51,11 @@ object GenericParsables {
     private val InnerList = DelimitedList(",", KeyValPair)
     override val synchronousProductions: Map[List[CFGParsable[_]], List[AST[CFGParsable[_]]] => Option[Map[K, V]]] = Map(
       List(Terminal("{"), Terminal("}")) -> (c => Some(Map.empty[K, V])),
-      List(Terminal("{"), InnerList, Terminal("}")) -> (c => for {
+      List(Optional(Terminal("{")), InnerList, Optional(Terminal("}"))) -> (c => for {
         list <- InnerList.fromAST(c(1))
+        leftBrace <- Optional(Terminal("{")).fromAST(c(0))
+        rightBrace <- Optional(Terminal("}")).fromAST(c(2))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield list.toMap)
     )
   }

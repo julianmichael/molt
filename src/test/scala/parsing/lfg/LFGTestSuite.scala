@@ -13,121 +13,103 @@ class LFGTestSuite extends FunSuite {
   // a s{i,a}mple grammar
   val partsOfSpeech = parseForced[Set[LFGLexicalCategory[String]]](
     """
-    {   N:  {    man:     {   up PRED = 'man'               }},
+        N:      man:        up PRED = 'man'               ,
 
-        I:  {    kissed:  {   up PRED  = 'kiss<SUBJ,OBJ>'   ,
-                              up TENSE = PAST               }},
+        I:      kissed:     up PRED  = 'kiss<SUBJ,OBJ>'   ,
+                            up TENSE = PAST               ,
 
-        DP: {    I:       {   up PRED = 'pro'               ,
-                              up NUM  = SG                  ,
-                              up PERS = FST                  ,
-                              up DEF  = yes                 },
+        DP:     I:          up PRED = 'pro'               ,
+                            up NUM  = SG                  ,
+                            up PERS = FST                 ,
+                            up DEF  = yes                 ,
 
-                 John:    {   up PRED = 'John'              ,
-                              up NUM  = SG                  ,
-                              up DEF  = yes                 },
+                John:       up PRED = 'John'              ,
+                            up NUM  = SG                  ,
+                            up DEF  = yes                 ,
 
-                 Gary:    {   up PRED = 'Gary'              ,
-                              up NUM  = SG                  ,
-                              up DEF  = yes                 }},
+                Gary:       up PRED = 'Gary'              ,
+                            up NUM  = SG                  ,
+                            up DEF  = yes                 ,
 
-        D:  {    the:     {   up DEF = yes                  },
+        D:      the:        up DEF = yes                  ,
 
-                 a:       {   up DEF = no                   ,
-                              up NUM = SG                   }}}
+                 a:          up DEF = no                  ,
+                             up NUM = SG
     """)
 
   val productions =
     // Inflectional
-    parseForced[Set[LFGProduction[String]]]("""{
-      IP -> [
-        DP: { up SUBJ = down },
-        IB: { up = down }
-      ],
+    parseForced[Set[LFGProduction[String]]]("""
+      IP ->
+        DP:  up SUBJ = down,
+        IB:  up = down,
 
-      IB -> [
-        I:  { up = down },
-        VP: { up = down }
-      ],
+      IB ->
+        I:   up = down,
+        VP:  up = down,
 
-      IB -> [
-        I:  { up = down }
-      ],
+      IB ->
+        I:   up = down,
 
-      IB -> [
-        VP: { up = down }
-      ]
-    }""") ++
+      IB ->
+        VP:  up = down
+    """) ++
     // Determiner
-    parseForced[Set[LFGProduction[String]]]("""{
-      DP -> [
-        DB: { up = down }
-      ],
+    parseForced[Set[LFGProduction[String]]]("""
+      DP ->
+        DB: up = down,
 
-      DB -> [
-        D: { up = down }
-      ],
+      DB ->
+        D: up = down,
 
-      DB -> [
-        D: { up = down },
-        NP: { up = down }
-      ]
-    }""") ++
+      DB ->
+        D:  up = down,
+        NP: up = down
+    """) ++
     // Noun
-    parseForced[Set[LFGProduction[String]]]("""{
-      NP -> [
-        NB: { up = down }
-      ],
+    parseForced[Set[LFGProduction[String]]]("""
+      NP ->
+        NB:  up = down,
 
-      NB -> [
-        AP: { up ADJ = down },
-        NB: { up = down }
-      ],
+      NB ->
+        AP: up ADJ = down,
+        NB: up = down,
 
-      NB -> [
-        N:  { up = down }
-      ]
-    }""") ++
+      NB ->
+        N:  up = down
+    """) ++
     // Adjective
-    parseForced[Set[LFGProduction[String]]]("""{
-      AP -> [
-        AB: { down < up }
-      ],
+    parseForced[Set[LFGProduction[String]]]("""
+      AP ->
+        AB: down < up,
 
-      AB -> [
-        A:  { up = down }
-      ]
-    }""") ++
+      AB ->
+        A:  up = down
+    """) ++
     // Verb
-    parseForced[Set[LFGProduction[String]]]("""{
-      VP -> [
-        VB: { up = down }
-      ],
+    parseForced[Set[LFGProduction[String]]]("""
+      VP ->
+        VB: up = down,
 
-      VB -> [
-        V:  { up = down },
-        DP: { up OBJ = down },
-        DP: { up OBJR = down }
-      ],
+      VB ->
+        V:  up = down,
+        DP: up OBJ = down,
+        DP: up OBJR = down,
 
-      VB -> [
-        V:  { up = down },
-        DP: { up OBJ = down }
-      ],
+      VB ->
+        V:  up = down,
+        DP: up OBJ = down,
 
-      VB -> [
-        DP: { up OBJ = down }
-      ],
+      VB ->
+        DP: up OBJ = down,
 
-      VB -> [
-        DP: { up OBJ = down },
-        DP: { up OBJR = down }
-      ],
+      VB ->
+        DP: up OBJ = down,
+        DP: up OBJR = down,
 
-      VB -> [
-        V:  { up = down }
-      ]
-    }""")
+      VB ->
+        V:  up = down
+    """)
 
   val grammar = new LexicalFunctionalGrammar[String](
     productions = productions,

@@ -60,4 +60,13 @@ object CFGParserHelpers {
       } yield List(end))
     )
   }
+
+  case class Optional[A](parsable: CFGParsable[A]) extends ComplexCFGParsable[Option[A]] {
+    final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Option[A]])] = Map(
+      List(parsable) -> (c => for {
+        p <- parsable.fromAST(c(0))
+      } yield Some(p)),
+      List(CFGEmptyCategory) -> (c => Some(None))
+    )
+  }
 }
