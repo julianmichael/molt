@@ -1,8 +1,6 @@
 To Do List
 ==========
 
- * A method of doing CFG parsing with productions of the empty string.
-
  * A whitespace-sensitive preprocessor that can add in brackets or other
    delimiters where changes in scope are detected. (See the whitespace
    sensitivity in Haskell for inspiration.) It will take in "indentation
@@ -17,8 +15,5 @@ To Do List
    coherence and completeness. (the latter seems like the attractive option.)
 
  * An example system for producing symbolic objects from F-Structures.
-
- * Implement a check for cycles in the graph of unary productions in the CNF
-   grammar.
 
  * Thread failure reporting, somehow, through the parsing calculations.

@@ -17,7 +17,7 @@ class CNFGrammar[A](
   val lexicalCategories: Set[LexicalCategory[A]],
   val startSymbols: Set[A] = Set.empty[A]) extends Grammar[CNFAST[A]] {
 
-  type S = CNFTag[A]
+  private[this] type S = CNFTag[A]
 
   private[this] val allSymbols =
     productions.flatMap(_.symbols) ++ lexicalCategories.map(cat => CNFNormalTag(cat.symbol))
@@ -176,8 +176,12 @@ class CNFGrammar[A](
   }
 
   override def parseTokens(tokens: Seq[String]): Set[CNFAST[A]] = {
-    val table = cykTable(tokens)
-    val extract = makeExtract(tokens, table)
-    startSymbols.map(CNFNormalTag(_)).flatMap(sym => extract((sym, tokens.length - 1, 0)))
+    if(tokens.length == 0) {
+      startSymbols.map(CNFNormalTag(_)).flatMap(nonterminalsToNullParseTrees)
+    } else {
+      val table = cykTable(tokens)
+      val extract = makeExtract(tokens, table)
+      startSymbols.map(CNFNormalTag(_)).flatMap(sym => extract((sym, tokens.length - 1, 0)))
+    }
   }
 }
