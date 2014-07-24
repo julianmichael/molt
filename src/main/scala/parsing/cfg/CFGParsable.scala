@@ -8,7 +8,7 @@ import parsing.tokenize._
  * that we want to be able to parse from a string, so I make most of the notes
  * here.
  */
-sealed trait CFGParsable[A] extends Parsable[A] {
+sealed trait CFGParsable[+A] extends Parsable[A] {
   // ----- Must implement -----
 
   // This mapping gives us all of the productions for this particular
@@ -26,6 +26,8 @@ sealed trait CFGParsable[A] extends Parsable[A] {
   // TODO come up with a better solution than JUST individual token symbols
   val tokens: Set[String] = Set()
 
+  val tag: ASTTag[CFGParsable[_]]
+
   // ----- Cannot be overridden -----
   final override type Intermediate = AST[CFGParsable[_]]
 
@@ -37,17 +39,15 @@ sealed trait CFGParsable[A] extends Parsable[A] {
   }
 
   // all the lexical categories required to parse this Parsable
-  final lazy val lexicalCategories: List[CFGParsableLexicalCategory] = {
-    ((children + this) collect {
-      case (c: CFGParsableLexicalCategory) => c
-    }).toList
+  final lazy val lexicalCategories: Set[LexicalCategory[CFGParsable[_]]] = (children + this) collect {
+    case (c: CFGParsableLexicalCategory) => c
   }
 
   // automatically determine the productions to give the grammar from the
   // synchronous productions of the Parsable and its children
   final lazy val processedSynchronousProductions: Map[CFGProduction[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[A])] =
     synchronousProductions.map {
-      case (k, v) => (CFGProduction[CFGParsable[_]](this, k), v)
+      case (k, v) => (CFGProduction[CFGParsable[_]](this, k.map(_.tag)), v)
     }
 
   final lazy val productions: Set[CFGProduction[CFGParsable[_]]] = {
@@ -61,7 +61,8 @@ sealed trait CFGParsable[A] extends Parsable[A] {
   final lazy val tokenizer: Tokenizer = new MaximalMunchTokenizer(allTokens)
 
   // the grammar just requires the productions, lexical categories, and start symbol
-  final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] = new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Some(this))
+  final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] =
+    new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Some(this))
 }
 
 /*
@@ -69,10 +70,11 @@ sealed trait CFGParsable[A] extends Parsable[A] {
  * their productions and determine everything from
  * there. The bulk of objects will implement this one.
  */
-trait ComplexCFGParsable[A] extends CFGParsable[A] {
+trait ComplexCFGParsable[+A] extends CFGParsable[A] {
+  final override val tag = ASTNormalTag(this)
   final def fromAST(ast: AST[CFGParsable[_]]): Option[A] = ast match {
     case ASTNonterminal(head, children) => for {
-      p <- Some(CFGProduction(head, children.map(_.label)))
+      p <- Some(CFGProduction(head, children.map(_.tag)))
       func <- processedSynchronousProductions.get(p)
       item <- func(children)
     } yield item
@@ -82,10 +84,18 @@ trait ComplexCFGParsable[A] extends CFGParsable[A] {
 
 trait CFGParsableLexicalCategory extends LexicalCategory[CFGParsable[_]] with CFGParsable[String] {
   final override val symbol = this
+  final override val tag = ASTNormalTag(this)
   final override val synchronousProductions =
     Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[String])]()
   final override def fromAST(ast: AST[CFGParsable[_]]): Option[String] = ast match {
     case ASTTerminal(`symbol`, str) if member(str) => Some(str)
     case _ => None
   }
+}
+
+case object CFGEmptyCategory extends CFGParsable[Nothing] {
+  final override val tag = ASTEmptyTag
+  final override val synchronousProductions =
+    Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Nothing])]()
+  final override def fromAST(ast: AST[CFGParsable[_]]): Option[Nothing] = None
 }

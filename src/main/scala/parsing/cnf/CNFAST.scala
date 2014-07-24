@@ -2,41 +2,58 @@ package parsing.cnf
 
 import parsing._
 import parsing.cfg._
-/*
- * AST with only binary and unary productions (encoded in
- * the types) to be used in parsing a CNF* grammar.
- * Distinction is made between productions native to the
- * grammar and nonterminals that were chunked together by the
- * conversion from CFG to CNF grammar. We also have `dechomskify`
- * which converts back to AST.
- */
-sealed abstract class CNFAST[A] {
+
+sealed abstract class CNFAST[+A] {
   val flattened: List[CNFAST[A]] = this match {
-    case CNFChunkedNonterminal(_, left, right) => left :: right.flattened
-    case _                         => this :: Nil
+    case CNFBinaryNonterminal(CNFChunkedTag(_), left, right) => left :: right.flattened
+    case CNFHole(CNFChunkedTag(names)) => names.map(n => CNFHole(CFGProduction.convertTag(n)))
+    case _                             => this :: Nil
   }
-  val dechomskify: Option[AST[A]] = this match {
-    case CNFChunkedNonterminal(_, _, _) => None
-    case CNFBinaryNonterminal(head, left, right) => {
+  lazy val dechomskify: Option[AST[A]] = this match {
+    case CNFHole(CNFChunkedTag(_)) => None
+    case CNFBinaryNonterminal(CNFChunkedTag(_), _, _) => None
+
+    case CNFEmpty => Some(ASTEmpty)
+    case CNFHole(CNFNormalTag(head)) => Some(ASTHole(head))
+    case CNFBinaryNonterminal(CNFNormalTag(head), left, right) => {
       val children = (left :: right.flattened).map(_.dechomskify).flatten
-      Some(ASTNonterminal[A](head, children))
+      Some(ASTNonterminal(head, children))
     }
-    case CNFUnaryNonterminal(head, child) => {
+    case CNFUnaryNonterminal(CNFNormalTag(head), child) => {
       val children = child.flattened.map(_.dechomskify).flatten
       Some(ASTNonterminal[A](head, children))
     }
-    case CNFTerminal(head, token) => {
+    case CNFTerminal(CNFNormalTag(head), token) => {
       Some(ASTTerminal[A](head, token))
     }
   }
-  val label: CNFTag[A] = this match {
-    case CNFChunkedNonterminal(chunk, _, _) => ChunkedTag[A](chunk)
-    case CNFBinaryNonterminal(head, _, _) => NormalTag[A](head)
-    case CNFUnaryNonterminal(head, _) => NormalTag[A](head)
-    case CNFTerminal(head, _) => NormalTag[A](head)
+
+  def attachAtHole[B >: A](subtree: CNFAST[B]): Option[CNFAST[B]] = this match {
+    case CNFBinaryNonterminal(label, left, right) => {
+      val leftTry = left.attachAtHole(subtree)
+      if(!leftTry.isEmpty) Some(CNFBinaryNonterminal(label, leftTry.get, right))
+      else for {
+        rightTry <- right.attachAtHole(subtree)
+      } yield CNFBinaryNonterminal(label, left, rightTry)
+    }
+    case CNFUnaryNonterminal(label, child) => for {
+      childTry <- child.attachAtHole(subtree)
+    } yield CNFUnaryNonterminal(label, childTry)
+    case CNFHole(label) if label == subtree.label => Some(subtree)
+    case _ => None
   }
+
+  val label: CNFTag[A]
 }
-case class CNFChunkedNonterminal[A](chunk: List[A], left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
-case class CNFBinaryNonterminal[A](head: A, left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
-case class CNFUnaryNonterminal[A](head: A, child: CNFAST[A]) extends CNFAST[A]
-case class CNFTerminal[A](head: A, token: String) extends CNFAST[A]
+
+case class CNFBinaryNonterminal[A](
+  override val label: CNFTag[A]/*CNFNonemptyTag[A]*/, left: CNFAST[A], right: CNFAST[A]) extends CNFAST[A]
+case class CNFUnaryNonterminal[A](
+  override val label: CNFTag[A]/*CNFNormalTag[A]*/, child: CNFAST[A]) extends CNFAST[A]
+case class CNFHole[A](
+  override val label: CNFTag[A]/*CNFNonemptyTag[A]*/) extends CNFAST[A]
+case class CNFTerminal[A](
+  override val label: CNFTag[A]/*CNFNormalTag[A]*/, token: String) extends CNFAST[A]
+case object CNFEmpty extends CNFAST[Nothing] {
+  override val label = CNFEmptyTag
+}

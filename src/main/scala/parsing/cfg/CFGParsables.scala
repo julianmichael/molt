@@ -17,7 +17,7 @@ object CFGParsables {
         (c => for {
           head <- NonterminalSymbol.fromAST(c(0))
           children <- Plus(NonterminalSymbol).fromAST(c(2))
-        } yield CFGProduction(head, children))
+        } yield CFGProduction(head, children.map(ASTNormalTag(_))))
       )
   }
 }

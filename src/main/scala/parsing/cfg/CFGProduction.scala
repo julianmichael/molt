@@ -2,39 +2,32 @@ package parsing.cfg
 
 import parsing.cnf._
 
-// for any general (finite) production with a bunch of children
-case class CFGProduction[+A](
-  head: A,
-  children: List[A]) {
+case class CFGProduction[+A](head: A, children: List[ASTTag[A]])
 
-  val toCNF: List[CNFProduction[A]] = {
-    CFGProduction.toCNF[A](this)
-  }
-
-}
 object CFGProduction {
   def toCNF[A](prod: CFGProduction[A]): List[CNFProduction[A]] = prod match {
     case CFGProduction(head, children) =>
-      collapseProduction(NormalTag[A](head), children).toList
+      collapseProduction(CNFNormalTag[A](head), children).toList
   }
 
-  private[this] def collapseProduction(
+  def convertTag[A](tag: ASTTag[A]): CNFTag[A] = tag match {
+    case ASTNormalTag(x) => CNFNormalTag(x)
+    case ASTEmptyTag => CNFEmptyTag
+  }
+
+  private[this] def collapseProduction[A](
       label: CNFTag[A],
-      symbols: List[A]): Set[CNFProduction[A]] = symbols match {
-    case Nil                    => throw new AssertionError("Production's children are null")
-    case Empty :: Nil           => Set(SingleEmpty[A](label))
-    case child :: Nil           => Set(Unary[A](NormalTag[A](head), NormalTag[A](child)))
-    case Empty :: Empty :: Nil  => Set(DoubleEmpty[A](label))
-    case left :: Empty :: Nil   => Set(RightEmpty[A](label, NormalTag[A](left)))
-    case Empty :: right :: Nil  => Set(LeftEmpty[A](label, NormalTag[A](right)))
-    case left :: right :: Nil   => Set(Binary[A](label, NormalTag[A](left), NormalTag[A](right)))
-    case Empty :: remainder     => {
-      collapseProduction(ChunkedTag[A](remainder), remainder)
-      + LeftEmpty[A](label, ChunkedTag[A](remainder))
-    }
+      symbols: List[ASTTag[A]]): Set[CNFProduction[A]] = symbols match {
+    case Nil                    => throw new AssertionError(s"empty production: label $label")
+    case child :: Nil           => Set(Unary(label, convertTag(child)))
+    case left :: right :: Nil   => Set(Binary(label, convertTag(left), convertTag(right)))
     case left :: remainder      => {
-      collapseProduction(ChunkedTag[A](remainder), remainder)
-      + Binary[A](label, NormalTag[A](left), ChunkedTag[A](remainder))
+      collapseProduction(CNFChunkedTag(remainder), remainder) +
+          Binary(label, convertTag(left), CNFChunkedTag(remainder))
     }
   }
 }
+
+sealed abstract class ASTTag[+A]
+case class ASTNormalTag[+A](label: A) extends ASTTag[A]
+case object ASTEmptyTag extends ASTTag[Nothing]

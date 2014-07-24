@@ -78,7 +78,11 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           tok <- tokens
           ast <- astree
-        } yield assert(parsable.grammar.parseTokens(tok).head === ast)
+        } yield {
+          val asts = parsable.grammar.parseTokens(tok)
+          assert(!asts.isEmpty)
+          assert(asts.head === ast)
+        }
 
         for {
           str <- string
@@ -94,7 +98,11 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           tok <- tokens
           sym <- symbol
-        } yield assert(parsable.fromAST(parsable.grammar.parseTokens(tok).head) === Some(sym))
+        } yield {
+          val asts = parsable.grammar.parseTokens(tok)
+          assert(!asts.isEmpty)
+          assert(parsable.fromAST(asts.head) === Some(sym))
+        }
 
         for {
           str <- string

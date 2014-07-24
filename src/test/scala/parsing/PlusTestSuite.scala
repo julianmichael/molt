@@ -13,12 +13,12 @@ class PlusTestParameters[A](parsable: CFGParsable[A]) extends ParsableTestParame
     parsable.grammar.nonterminals)
   override val tokens = Some(parsable.allTokens)
   override val productions = Some(Set(
-    CFGProduction(Plus(parsable), List(parsable, Plus(parsable))),
-    CFGProduction(Plus(parsable), List(parsable))) ++
+    CFGProduction(Plus(parsable), List[ASTTag[CFGParsable[_]]](ASTNormalTag(parsable), ASTNormalTag(Plus(parsable)))),
+    CFGProduction(Plus(parsable), List[ASTTag[CFGParsable[_]]](ASTNormalTag(parsable)))) ++
     parsable.grammar.productions)
   override val cnfProductions = Some(Set(
-    Binary(NormalTag(Plus(parsable)), NormalTag(parsable), NormalTag(Plus(parsable))),
-    Unary(NormalTag(Plus(parsable)), NormalTag(parsable))) ++
+    Binary(CNFNormalTag(Plus(parsable)), CNFNormalTag(parsable), CNFNormalTag(Plus(parsable))),
+    Unary(CNFNormalTag(Plus(parsable)), CNFNormalTag(parsable))) ++
     parsable.grammar.cnfProductions)
   override val testParses = Nil
 }

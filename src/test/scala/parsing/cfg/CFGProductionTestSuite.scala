@@ -29,11 +29,21 @@ object CFGProductionTestParameters extends ParsableTestParameters[CFGProduction[
     plusTestParameters.nonterminals.get)
   override val tokens = Some(Set("->") ++ plusTestParameters.tokens.get)
   override val productions = Some(Set(
-    CFGProduction(CFGProductionParser, List(CFGProductionParser.NonterminalSymbol, Terminal("->"), Plus(CFGProductionParser.NonterminalSymbol)))) ++
+    CFGProduction(CFGProductionParser, List(ASTNormalTag(CFGProductionParser.NonterminalSymbol), ASTNormalTag(Terminal("->")), ASTNormalTag(Plus(CFGProductionParser.NonterminalSymbol))))) ++
     plusTestParameters.productions.get)
-  override val cnfProductions = Some(Set(
-    Binary(NormalTag(CFGProductionParser), NormalTag(CFGProductionParser.NonterminalSymbol), ChunkedTag(List(Terminal("->"), Plus(CFGProductionParser.NonterminalSymbol)))),
-    Binary(ChunkedTag(List(Terminal("->"), Plus(CFGProductionParser.NonterminalSymbol))), NormalTag(Terminal("->")), NormalTag(Plus(CFGProductionParser.NonterminalSymbol)))) ++
+  override val cnfProductions = Some(Set[CNFProduction[CFGParsable[_]]](
+    Binary(
+      CNFNormalTag(CFGProductionParser),
+      CNFNormalTag(CFGProductionParser.NonterminalSymbol),
+      CNFChunkedTag(List(
+        ASTNormalTag(Terminal("->")),
+        ASTNormalTag(Plus(CFGProductionParser.NonterminalSymbol))))),
+    Binary(
+      CNFChunkedTag(List(
+        ASTNormalTag(Terminal("->")),
+        ASTNormalTag(Plus(CFGProductionParser.NonterminalSymbol)))),
+      CNFNormalTag(Terminal("->")),
+      CNFNormalTag(Plus(CFGProductionParser.NonterminalSymbol)))) ++
     plusTestParameters.cnfProductions.get)
   override val testParses = List(
     TestParse(
@@ -49,5 +59,5 @@ object CFGProductionTestParameters extends ParsableTestParameters[CFGProduction[
           ))
         ))
       ))),
-      Some(CFGProduction("S", List("NP", "VP")))))
+      Some(CFGProduction("S", List(ASTNormalTag("NP"), ASTNormalTag("VP"))))))
 }

@@ -1,6 +1,6 @@
 package parsing.lfg
 
-sealed abstract class AnnotatedAST[A] {
+sealed abstract class AnnotatedAST[+A] {
   def fDescription: (FDescription, AbsoluteIdentifier) = {
     import scalaz.syntax.state._
     import scalaz.State, State._
@@ -38,6 +38,7 @@ sealed abstract class AnnotatedAST[A] {
           groundedSpec = spec.map(_.ground(upID, downID))
         } yield groundedSpec
       }
+      case _ => state(Set.empty[Equation[AbsoluteIdentifier]])
     }
 
     val initialID = AbsoluteIdentifier("0")
@@ -57,3 +58,9 @@ case class AnnotatedTerminal[A](
   head: A,
   word: LexicalEntry)
   extends AnnotatedAST[A]
+
+case class AnnotatedHole[A](
+  head: A)
+  extends AnnotatedAST[A]
+
+case object AnnotatedEmpty extends AnnotatedAST[Nothing]

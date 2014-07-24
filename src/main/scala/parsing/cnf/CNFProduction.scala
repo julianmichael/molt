@@ -1,26 +1,26 @@
 package parsing.cnf
 
-// for all productions guaranteed to be in Chomsky Normal Form
-// plus unary productions
-sealed abstract class CNFProduction[+A]
+import parsing.cfg.ASTTag
+
+sealed abstract class CNFProduction[A] {
+  val symbols: Set[CNFTag[A]] = this match {
+    case Binary(label, left, right) => Set(label, left, right)
+    case Unary(label, child) => Set(label, child)
+  }
+}
 case class Binary[A](
-  label: CNFTag[A],
-  left: CNFTag[A],
+  label: CNFTag[A],//CNFNonemptyTag[A],
+  left: CNFTag[A],//CNFUnchunkedTag[A],
   right: CNFTag[A]) extends CNFProduction[A]
 case class Unary[A](
-  label: CNFTag[A],
-  child: CNFTag[A]) extends CNFProduction[A]
-case class SingleEmpty[A](
-  label: CNFTag[A]) extends CNFProduction[A]
-case class DoubleEmpty[A](
-  label: CNFTag[A]) extends CNFProduction[A]
-case class LeftEmpty[A](
-  label: CNFTag[A],
-  right: CNFTag[A]) extends CNFProduction[A]
-case class RightEmpty[A](
-  label: CNFTag[A],
-  left:  CNFTag[A]) extends CNFProduction[A]
+  label: CNFTag[A],//CNFNormalTag[A],
+  child: CNFTag[A]/*CNFUnchunkedTag[A]*/) extends CNFProduction[A]
 
-sealed abstract class CNFTag[+A]
-case class NormalTag[A](label: A) extends CNFTag[A]
-case class ChunkedTag[A](labels: List[A]) extends CNFTag[A]
+sealed trait CNFTag[+A]
+sealed trait CNFNonemptyTag[+A] extends CNFTag[A]
+sealed trait CNFUnchunkedTag[+A] extends CNFTag[A]
+
+// todo CNFChunkedTag should always have >= 2 labels
+case class CNFChunkedTag[+A](labels: List[ASTTag[A]]) extends CNFNonemptyTag[A]
+case class CNFNormalTag[+A](label: A) extends CNFNonemptyTag[A] with CNFUnchunkedTag[A]
+case object CNFEmptyTag extends CNFUnchunkedTag[Nothing]

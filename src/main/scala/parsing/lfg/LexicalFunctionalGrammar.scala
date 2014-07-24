@@ -16,7 +16,10 @@ class LexicalFunctionalGrammar[A](
   } yield fStruct
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
-  val cfGrammar = new ContextFreeGrammar[A](cfgProductions, lexicalCategories.toList, startSymbol)
+  private[this] val cfgLexicalCategories: Set[LexicalCategory[A]] = lexicalCategories.collect {
+    case (x: LexicalCategory[A]) => x
+  }
+  val cfGrammar = new ContextFreeGrammar[A](cfgProductions, cfgLexicalCategories, startSymbol)
 
   private[this] val productionToSetOfChildSpecifications: Map[CFGProduction[A], Set[List[Specification]]] =
     productions.groupBy(_.cfgProduction).map {
@@ -27,7 +30,7 @@ class LexicalFunctionalGrammar[A](
 
   private[this] def annotations(ast: AST[A]): Set[AnnotatedAST[A]] = ast match {
     case ASTNonterminal(head, children) => {
-      val cfgProduction = CFGProduction(head, children.map(_.label))
+      val cfgProduction = CFGProduction(head, children.map(_.tag))
       val specifications = productionToSetOfChildSpecifications(cfgProduction)
       val childrenAnnotationSets = children.map(annotations _)
       val annotationChoices = childrenAnnotationSets.foldRight(
@@ -47,5 +50,7 @@ class LexicalFunctionalGrammar[A](
       if lexcat.symbol == head
       spec <- lexcat.specifications(token)
     } yield AnnotatedTerminal(head, (token, spec))
+    case ASTHole(head) => Set(AnnotatedHole(head))
+    case ASTEmpty => Set(AnnotatedEmpty)
   }
 }

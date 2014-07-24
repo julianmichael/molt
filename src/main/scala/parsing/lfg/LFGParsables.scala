@@ -73,12 +73,12 @@ object LFGParsables {
 
   implicit object LFGProductionParser extends ComplexCFGParsable[LFGProduction[String]] {
 
-    val ProductionChildParser = new ComplexCFGParsable[(String, Specification)] {
-      override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[(String, Specification)])] = Map(
+    val ProductionChildParser = new ComplexCFGParsable[(ASTTag[String], Specification)] {
+      override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[(ASTTag[String], Specification)])] = Map(
         List(Alphabetical, Terminal(":"), SpecificationParser) -> (c => for {
           label <- Alphabetical.fromAST(c(0))
           spec <- SpecificationParser.fromAST(c(2))
-        } yield (label, spec))
+        } yield (ASTNormalTag(label), spec))
       )
     }
 

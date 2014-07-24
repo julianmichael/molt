@@ -21,11 +21,11 @@ object RelativeIdentifierTestParameters extends ParsableTestParameters[RelativeI
     RelativeIdentifierParser))
   override val tokens = Some(Set("up", "down"))
   override val productions = Some(Set[CFGProduction[CFGParsable[_]]](
-    CFGProduction(RelativeIdentifierParser, List(Terminal("up"))),
-    CFGProduction(RelativeIdentifierParser, List(Terminal("down")))))
+    CFGProduction(RelativeIdentifierParser, List(ASTNormalTag(Terminal("up")))),
+    CFGProduction(RelativeIdentifierParser, List(ASTNormalTag(Terminal("down"))))))
   override val cnfProductions = Some(Set[CNFProduction[CFGParsable[_]]](
-    Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("up"))),
-    Unary(NormalTag(RelativeIdentifierParser), NormalTag(Terminal("down")))))
+    Unary(CNFNormalTag(RelativeIdentifierParser), CNFNormalTag(Terminal("up"))),
+    Unary(CNFNormalTag(RelativeIdentifierParser), CNFNormalTag(Terminal("down")))))
   override val testParses = List[TestParse[RelativeIdentifier]](
     TestParse(
       Some("up"),
