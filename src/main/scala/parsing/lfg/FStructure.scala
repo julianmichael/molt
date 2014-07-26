@@ -31,13 +31,6 @@ case class FStructure(
     }
   }).forall(identity)
   // Coherence:
-  // 
-  // 
-  // 
-  // 
-  // which is a semantic form with the feature in its argument list.
-  // Furthermore, if the argument/governable function feature has a semantic
-  // form, then it must have a semantic role in a designator.
   def isCoherent(argumentFunction: (Feature => Boolean)): Boolean = {
     val mapsWithGovernedFStructs = for {
       (_, FMapping(m)) <- map             // Consider mappings in the F structure
@@ -65,6 +58,17 @@ case class FStructure(
       }
     }
   }
+  // TODO: Extended coherence:
+  // The extended coherence condition applies not just to argument functions,
+  // but to all syntactic functions, requiring that they be integrated
+  // appropriately into the f-structure (Zaenen, 1985; Fassi-Fehri, 1984;
+  // Bresnan and Mchombo, 1987). Argument functions are integrated into the
+  // f-structure when they are designated by a PRED as above (i.e., if they
+  // satisfy normal coherence). Nonargument functions are integrated if they
+  // bear an appropriate relation to a PRED. An ADJUNCT is integrated if the
+  // f-structure that contains the ADJUNCT has a PRED feature. A TOPIC or FOCUS
+  // function is integrated whenever it is identified with, or anaphorically
+  // linked to, an integrated function.
 }
 
 sealed abstract class FStructurePart

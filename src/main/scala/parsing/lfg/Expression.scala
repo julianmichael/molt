@@ -26,14 +26,18 @@ abstract class IdentifyingExpression[ID <: Identifier] {
     case BareIdentifier(x) if x == Up => BareIdentifier(up)
     case BareIdentifier(x) if x == Down => BareIdentifier(down)
     case Application(exp, feat) => Application(exp.ground(up, down), feat)
+    case InverseApplication(feat, exp) => InverseApplication(feat, exp.ground(up, down))
   }
   def identifiers: Set[ID] = this match {
     case BareIdentifier(x) => Set(x)
     case Application(exp, _) => exp.identifiers
+    case InverseApplication(_, exp) => exp.identifiers
   }
 }
 
 case class BareIdentifier[ID <: Identifier](id: ID)
   extends IdentifyingExpression[ID]
 case class Application[ID <: Identifier](exp: IdentifyingExpression[ID], feature: Feature)
+  extends IdentifyingExpression[ID]
+case class InverseApplication[ID <: Identifier](feature: Feature, exp: IdentifyingExpression[ID])
   extends IdentifyingExpression[ID]

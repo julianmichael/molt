@@ -41,7 +41,7 @@ class LFGTestSuite extends FunSuite {
     // Inflectional
     parseForced[Set[LFGProduction[String]]]("""
       IP ->
-        DP:  up DF = down,
+        DP:  up TOP = down,
         IP:  up = down,
 
       IP ->

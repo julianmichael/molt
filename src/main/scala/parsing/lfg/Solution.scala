@@ -144,12 +144,13 @@ class LFGSolver(
           feat <- wildcards.getOrElse(f, List(f)).liftM[SolutionStateT]
           subExpressionID <- makeExpression(FunctionalExpression(e))
           id <- freshID
-          // the subexpression maps to the total expression via the feature
           _ <- addMapping(subExpressionID, FMapping(Map(feat -> id)))
-          // perhaps fix this and/or update addMapping code to do FUSIONZ but
-          // actually this is ok right now because it'd only possibly get
-          // overwritten in the containing expression and that's great
-          _ <- addMapping(id, Empty)
+        } yield id
+        case InverseApplication(f, e) => for {
+          feat <- wildcards.getOrElse(f, List(f)).liftM[SolutionStateT]
+          subExpressionID <- makeExpression(FunctionalExpression(e))
+          id <- freshID
+          _ <- addMapping(id, FMapping(Map(feat -> subExpressionID)))
         } yield id
       }
       case ValueExpression(v) => for {
@@ -191,6 +192,16 @@ class LFGSolver(
         expID = map(feat)
         expRepID = groups.find(expID).get
       } yield expRepID
+      case InverseApplication(e, feat) => for {
+        // should be the representative ID
+        subID <- testExpression(FunctionalExpression(e), fstruct, groups)
+        // just in case. todo remove
+        repID <- groups.find(subID).get
+        // next we need to find every ID that corresponds to a map that maps by
+        // `feat` to an id whose rep. ID is subID.
+        inverseApplyID <- ??? // list of all such IDs
+        inverseRepID = groups.find(inverseApplyID).get
+      } yield inverseRepID
     }
     case ValueExpression(v) => for {
       id <- (fstruct.map collect { case (k, FValue(`v`)) => k }).toList

@@ -1,6 +1,8 @@
 To Do List
 ==========
 
+ * inverse function application
+
  * A way to specify wildcards and do basic functional uncertainty
 
  * A whitespace-sensitive preprocessor that can add in brackets or other

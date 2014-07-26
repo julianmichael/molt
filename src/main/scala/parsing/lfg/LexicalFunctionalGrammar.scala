@@ -10,7 +10,7 @@ class LexicalFunctionalGrammar[A](
   val governableGrammaticalFunctions: Set[String] = Set.empty[String]) extends Grammar[FStructure] {
 
   private[this] val solve = new LFGSolver(Map(
-    "DF" -> List("SUBJ", "TOPIC", "FOCUS"),
+    "DF" -> List("SUBJ", "TOP", "FOC"),
     "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL")
   ))
 
