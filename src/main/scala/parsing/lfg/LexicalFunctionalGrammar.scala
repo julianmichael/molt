@@ -6,13 +6,20 @@ import parsing.cfg._
 class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
   val lexicalCategories: Set[LFGLexicalCategory[A]],
-  val startSymbol: Option[A] = None) extends Grammar[FStructure] {
+  val startSymbol: Option[A] = None,
+  val governableGrammaticalFunctions: Set[String] = Set.empty[String]) extends Grammar[FStructure] {
+
+  private[this] val solve = new LFGSolver(Map(
+    "DF" -> List("SUBJ", "TOPIC", "FOCUS"),
+    "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL")
+  ))
 
   override def parseTokens(tokens: Seq[String]): Set[FStructure] = for {
     ast <- cfGrammar.parseTokens(tokens)
     annotatedAST <- annotations(ast)
     (fdesc, rootID) = annotatedAST.fDescription
-    fStruct <- Solution.solve(fdesc, rootID)
+    fStruct <- solve(fdesc, rootID)
+    if fStruct.isComplete && fStruct.isCoherent(governableGrammaticalFunctions)
   } yield fStruct
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)

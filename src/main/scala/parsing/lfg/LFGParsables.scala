@@ -78,7 +78,10 @@ object LFGParsables {
         List(Alphabetical, Terminal(":"), SpecificationParser) -> (c => for {
           label <- Alphabetical.fromAST(c(0))
           spec <- SpecificationParser.fromAST(c(2))
-        } yield (ASTNormalTag(label), spec))
+        } yield (ASTNormalTag(label), spec)),
+        List(Terminal("<e>"), Terminal(":"), SpecificationParser) -> (c => for {
+          spec <- SpecificationParser.fromAST(c(2))
+        } yield (ASTEmptyTag, spec))
       )
     }
 
@@ -186,16 +189,22 @@ object LFGParsables {
     override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[SemanticForm])] = Map(
       List(Alphabetical) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
-      } yield new SemanticForm(head, Nil)),
+      } yield new SemanticForm(head, Nil, Nil)),
       List(Alphabetical, Terminal("<"), FeatureListParser, Terminal(">")) -> (c => for {
         head <- Alphabetical.fromAST(c(0))
-        args <- FeatureListParser.fromAST(c(2))
-      } yield new SemanticForm(head, args))
+        semArgs <- FeatureListParser.fromAST(c(2))
+      } yield new SemanticForm(head, semArgs, Nil)),
+      List(Alphabetical, Terminal("<"), Optional(FeatureListParser), Terminal(">"), FeatureListParser) -> (c => for {
+        head <- Alphabetical.fromAST(c(0))
+        semArgsMaybe <- Optional(FeatureListParser).fromAST(c(2))
+        semArgs = semArgsMaybe.getOrElse(Nil)
+        nonSemArgs <- FeatureListParser.fromAST(c(4))
+      } yield new SemanticForm(head, semArgs, nonSemArgs))
     )
 
-    def makeString(sem: SemanticForm): String = sem match { case SemanticForm(head, args) =>
+    def makeString(sem: SemanticForm): String = sem match { case SemanticForm(head, args, nsArgs) =>
       if(args.isEmpty) s"'$head'"
-      else s"'$head<${args.mkString(",")}>'"
+      else s"'$head<${args.mkString(",")}>${nsArgs.mkString(",")}'"
     }
   }
 

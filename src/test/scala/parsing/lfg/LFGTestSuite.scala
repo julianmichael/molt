@@ -41,6 +41,10 @@ class LFGTestSuite extends FunSuite {
     // Inflectional
     parseForced[Set[LFGProduction[String]]]("""
       IP ->
+        DP:  up DF = down,
+        IP:  up = down,
+
+      IP ->
         DP:  up SUBJ = down,
         IB:  up = down,
 
@@ -55,6 +59,8 @@ class LFGTestSuite extends FunSuite {
         VP:  up = down
     """) ++
     // Determiner
+    //  DP ->
+    //    <e>: up DF = down,
     parseForced[Set[LFGProduction[String]]]("""
       DP ->
         DB: up = down,
@@ -111,12 +117,15 @@ class LFGTestSuite extends FunSuite {
         V:  up = down
     """)
 
+  val governableFunctions = Set("SUBJ", "OBJ", "OBJR", "OBL")
+
   val grammar = new LexicalFunctionalGrammar[String](
     productions = productions,
     lexicalCategories = partsOfSpeech,
-    startSymbol = Some("IP"))
+    startSymbol = Some("IP"),
+    governableGrammaticalFunctions = governableFunctions)
 
-  def testSentence(tokens: List[String]) = {
+  def testSentence(tokens: List[String], good: Boolean = true) = {
     println(tokens.mkString(" "))
     val fstructs = grammar.parseTokens(tokens)
     fstructs.map(FStructureParser.makeString).foreach(println)
@@ -124,7 +133,7 @@ class LFGTestSuite extends FunSuite {
     val asts = grammar.cfGrammar.parseTokens(tokens)
     asts.foreach(x => println(x.prettyString))
     println
-    assert(!fstructs.isEmpty)
+    assert(good != fstructs.isEmpty)
   }
 
   test(s"John kissed Gary") {
@@ -136,4 +145,15 @@ class LFGTestSuite extends FunSuite {
   test(s"the man kissed Gary") {
     testSentence(List("the", "man", "kissed", "Gary"))
   }
+  test(s"John kissed") {
+    testSentence(List("John", "kissed"), false)
+  }
+  test(s"John kissed Gary a man") {
+    testSentence(List("John", "kissed", "Gary", "a", "man"), false)
+  }
+  /*
+  test(s"Gary I kissed") {
+    testSentence(List("Gary", "I", "kissed"))
+  }
+  */
 }

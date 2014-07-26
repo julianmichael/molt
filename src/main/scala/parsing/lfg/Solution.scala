@@ -33,7 +33,8 @@ import util._
 import scalaz._
 import Scalaz._
 
-object Solution {
+class LFGSolver(
+    wildcards: Map[Feature, List[Feature]] = Map.empty[Feature, List[Feature]]) {
   type PartialSolution = (SetUnionFind[AbsoluteIdentifier], FStructure)
   def emptySolution(fdesc: FDescription, rootID: AbsoluteIdentifier) = {
     val ids = fdesc.flatMap(_.identifiers) + rootID
@@ -139,7 +140,8 @@ object Solution {
     exp match {
       case FunctionalExpression(ex) => ex match {
         case BareIdentifier(id) => state(id).lift[List]
-        case Application(e, feat) => for {
+        case Application(e, f) => for {
+          feat <- wildcards.getOrElse(f, List(f)).liftM[SolutionStateT]
           subExpressionID <- makeExpression(FunctionalExpression(e))
           id <- freshID
           // the subexpression maps to the total expression via the feature
@@ -280,4 +282,7 @@ object Solution {
   def solve(fdesc: FDescription, rootID: AbsoluteIdentifier): List[FStructure] = {
     solvePartial(fdesc).eval(emptySolution(fdesc, rootID))
   }
+
+  def apply(fdesc: FDescription, rootID: AbsoluteIdentifier): List[FStructure] =
+    solve(fdesc, rootID)
 }

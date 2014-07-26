@@ -99,6 +99,7 @@ class CNFGrammar[A](
             }
           }
         }
+        case _ => ()
       }
     }
     val nullParses = nullable.map(_._2)

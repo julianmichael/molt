@@ -2,7 +2,7 @@ package parsing.lfg
 
 import parsing._
 import parsing.ParseCommands._
-import parsing.cfg.CFGParsable
+import parsing.cfg._
 import parsing.cfg.GenericParsables._
 import parsing.cfg.CFGParserHelpers._
 import parsing.lfg.LFGParsables._
@@ -18,10 +18,13 @@ object SemanticFormTestParameters extends ParsableTestParameters[SemanticForm] {
     Alphabetical,
     Terminal("<"),
     FeatureListParser,
+    Optional(FeatureListParser),
+    CFGEmptyCategory,
     Terminal(">")) ++
     FeatureListParser.children)
   override val nonterminals = Some(Set[CFGParsable[_]](
     SemanticFormParser,
+    Optional(FeatureListParser),
     FeatureListParser) ++
     FeatureListParser.grammar.nonterminals)
   override val tokens = Some(Set("<", ">") ++
