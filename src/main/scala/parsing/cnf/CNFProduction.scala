@@ -16,7 +16,13 @@ case class Unary[A](
   label: CNFTag[A],//CNFNormalTag[A],
   child: CNFTag[A]/*CNFUnchunkedTag[A]*/) extends CNFProduction[A]
 
-sealed trait CNFTag[+A]
+sealed trait CNFTag[+A] {
+  override def toString: String = this match {
+    case CNFChunkedTag(labels) => s"{${labels.mkString("+")}}"
+    case CNFNormalTag(label) => s"$label"
+    case CNFEmptyTag => "<e>"
+  }
+}
 sealed trait CNFNonemptyTag[+A] extends CNFTag[A]
 sealed trait CNFUnchunkedTag[+A] extends CNFTag[A]
 

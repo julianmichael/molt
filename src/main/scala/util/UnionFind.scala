@@ -33,6 +33,8 @@ class SetUnionFind[A] private (
       new SetUnionFind(set - aSet - bSet + (aSet ++ bSet))
     }
     else this
+
+  def representatives: Set[A] = set.map(_.head)
 }
 object SetUnionFind {
   def empty[A](implicit ord: Ordering[A]): SetUnionFind[A] =

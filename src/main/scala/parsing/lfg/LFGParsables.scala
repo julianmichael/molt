@@ -124,8 +124,8 @@ object LFGParsables {
   implicit object EquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
     override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
       List(Terminal("!"), EquationParser) -> (c => for {
-        negated <- EquationParser.fromAST(c(1))
-      } yield negated.negation),
+        eq <- EquationParser.fromAST(c(1))
+      } yield eq.negation),
       List(EquationParser, Terminal("&"), EquationParser) -> (c => for {
         left <- EquationParser.fromAST(c(0))
         if !(left.isInstanceOf[Compound[RelativeIdentifier]])
@@ -148,7 +148,7 @@ object LFGParsables {
         left <- ExpressionParser.fromAST(c(0))
         right <- ExpressionParser.fromAST(c(2))
       } yield Constraint(Equals(true, left, right))),
-      List(ExpressionParser, Terminal("INc"), ExpressionParser) -> (c => for {
+      List(ExpressionParser, Terminal("<c"), ExpressionParser) -> (c => for {
         elem <- ExpressionParser.fromAST(c(0))
         cont <- ExpressionParser.fromAST(c(2))
       } yield Constraint(Contains(true, elem, cont))),
@@ -156,6 +156,27 @@ object LFGParsables {
         exp <- ExpressionParser.fromAST(c(0))
       } yield Constraint(Exists(true, exp)))
     )
+
+    def makeString[ID <: Identifier](eq: Equation[ID]): String = eq match {
+      case Compound(ceq) => ceq match {
+        case Disjunction(eqs) => eqs.map(makeString).mkString(" | ")
+        case Conjunction(eqs) => eqs.map(makeString).mkString(" & ")
+      }
+      case Defining(deq) => deq match {
+        case Assignment(lexp, rexp) =>
+          s"${ExpressionParser.makeString(lexp)} = ${ExpressionParser.makeString(rexp)}"
+        case Containment(lexp, rexp) =>
+          s"${ExpressionParser.makeString(lexp)} < ${ExpressionParser.makeString(rexp)}"
+      }
+      case Constraint(ceq) => ceq match {
+        case Equals(pos, lexp, rexp) =>
+          s"${if(pos) "" else "!"}${ExpressionParser.makeString(lexp)} =c ${ExpressionParser.makeString(rexp)}"
+        case Contains(pos, eexp, cexp) =>
+          s"${if(pos) "" else "!"}${ExpressionParser.makeString(eexp)} <c ${ExpressionParser.makeString(cexp)}"
+        case Exists(pos, exp) =>
+          s"${if(pos) "" else "!"}${ExpressionParser.makeString(exp)}"
+      }
+    }
   }
 
   implicit object ExpressionParser extends ComplexCFGParsable[Expression[RelativeIdentifier]] {
@@ -171,6 +192,12 @@ object LFGParsables {
         sem <- SemanticFormParser.fromAST(c(1))
       } yield SemanticFormExpression(sem))
     )
+
+    def makeString[ID <: Identifier](exp: Expression[ID]): String = exp match {
+      case FunctionalExpression(iexp) => IdentifyingExpressionParser.makeString(iexp)
+      case ValueExpression(v) => s"$v"
+      case SemanticFormExpression(s) => SemanticFormParser.makeString(s)
+    }
   }
 
   implicit object IdentifyingExpressionParser extends ComplexCFGParsable[IdentifyingExpression[RelativeIdentifier]] {
@@ -178,11 +205,27 @@ object LFGParsables {
       List(RelativeIdentifierParser) -> (c => for {
         id <- RelativeIdentifierParser.fromAST(c(0))
       } yield BareIdentifier(id)),
-      List(IdentifyingExpressionParser, Alphabetical) -> (c => for {
-        exp <- IdentifyingExpressionParser.fromAST(c(0))
+      List(Optional(Terminal("(")), IdentifyingExpressionParser, Alphabetical, Optional(Terminal(")"))) -> (c => for {
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
+        exp <- IdentifyingExpressionParser.fromAST(c(1))
+        feat <- Alphabetical.fromAST(c(2))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(3))
+        if leftBrace.isEmpty == rightBrace.isEmpty
+      } yield Application(exp, feat)),
+      List(Optional(Terminal("(")), Alphabetical, IdentifyingExpressionParser, Optional(Terminal(")"))) -> (c => for {
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
         feat <- Alphabetical.fromAST(c(1))
-      } yield Application(exp, feat))
+        exp <- IdentifyingExpressionParser.fromAST(c(2))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(3))
+        if leftBrace.isEmpty == rightBrace.isEmpty
+      } yield InverseApplication(feat, exp))
     )
+
+    def makeString[ID <: Identifier](exp: IdentifyingExpression[ID]): String = exp match {
+      case BareIdentifier(x) => s"$x"
+      case Application(iexp, feat) => s"(${makeString(iexp)} $feat)"
+      case InverseApplication(feat, iexp) => s"($feat ${makeString(iexp)})"
+    }
   }
 
   implicit object SemanticFormParser extends ComplexCFGParsable[SemanticForm] {

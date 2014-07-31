@@ -151,7 +151,12 @@ class LFGSolver(
           subExpressionID <- makeExpression(FunctionalExpression(e))
           id <- freshID
           _ <- addMapping(id, FMapping(Map(feat -> subExpressionID)))
-        } yield id
+          groups <- getGroups
+          // branch here: go through all groups.representatives, and make the
+          // choice of unifying `id` with each one---or none of them.
+          unitee <- (groups.representatives).toList.liftM[SolutionStateT]
+          rep <- unifyIDs(id, unitee)
+        } yield rep
       }
       case ValueExpression(v) => for {
         id <- freshID
@@ -192,16 +197,14 @@ class LFGSolver(
         expID = map(feat)
         expRepID = groups.find(expID).get
       } yield expRepID
-      case InverseApplication(e, feat) => for {
+      case InverseApplication(feat, e) => for {
         // should be the representative ID
         subID <- testExpression(FunctionalExpression(e), fstruct, groups)
-        // just in case. todo remove
-        repID <- groups.find(subID).get
         // next we need to find every ID that corresponds to a map that maps by
         // `feat` to an id whose rep. ID is subID.
-        inverseApplyID <- ??? // list of all such IDs
-        inverseRepID = groups.find(inverseApplyID).get
-      } yield inverseRepID
+        // inverseApplyID <- ??? // list of all such IDs
+        // inverseRepID = groups.find(inverseApplyID).get
+      } yield ???
     }
     case ValueExpression(v) => for {
       id <- (fstruct.map collect { case (k, FValue(`v`)) => k }).toList
@@ -290,10 +293,10 @@ class LFGSolver(
     }
   }
 
-  def solve(fdesc: FDescription, rootID: AbsoluteIdentifier): List[FStructure] = {
-    solvePartial(fdesc).eval(emptySolution(fdesc, rootID))
+  def solve(fdesc: FDescription, rootID: AbsoluteIdentifier): Set[FStructure] = {
+    solvePartial(fdesc).eval(emptySolution(fdesc, rootID)).toSet
   }
 
-  def apply(fdesc: FDescription, rootID: AbsoluteIdentifier): List[FStructure] =
+  def apply(fdesc: FDescription, rootID: AbsoluteIdentifier): Set[FStructure] =
     solve(fdesc, rootID)
 }

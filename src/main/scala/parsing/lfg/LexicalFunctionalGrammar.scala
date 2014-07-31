@@ -10,7 +10,7 @@ class LexicalFunctionalGrammar[A](
   val governableGrammaticalFunctions: Set[String] = Set.empty[String]) extends Grammar[FStructure] {
 
   private[this] val solve = new LFGSolver(Map(
-    "DF" -> List("SUBJ", "TOP", "FOC"),
+    "DF" -> List("TOP", "FOC"),
     "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL")
   ))
 
@@ -20,6 +20,11 @@ class LexicalFunctionalGrammar[A](
     (fdesc, rootID) = annotatedAST.fDescription
     fStruct <- solve(fdesc, rootID)
     if fStruct.isComplete && fStruct.isCoherent(governableGrammaticalFunctions)
+    _ = {
+      // println(ast.prettyString)
+      // println(fdesc.map(LFGParsables.EquationParser.makeString).mkString("\n"))
+      // println(LFGParsables.FStructureParser.makeString(fStruct))
+    }
   } yield fStruct
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
@@ -35,7 +40,7 @@ class LexicalFunctionalGrammar[A](
       })
   }
 
-  private[this] def annotations(ast: AST[A]): Set[AnnotatedAST[A]] = ast match {
+  def annotations(ast: AST[A]): Set[AnnotatedAST[A]] = ast match {
     case ASTNonterminal(head, children) => {
       val cfgProduction = CFGProduction(head, children.map(_.tag))
       val specifications = productionToSetOfChildSpecifications(cfgProduction)

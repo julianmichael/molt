@@ -47,6 +47,18 @@ sealed abstract class AnnotatedAST[+A] {
     } yield fDesc
     (fDescriptionProcessor.eval(Set(initialID)), initialID)
   }
+
+  def prettyString: String = this match {
+    case AnnotatedNonterminal(head, children) => {
+      val childString = children.map {
+        case (ast, spec) => s"${spec.mkString(",")}\n${ast.prettyString}"
+      }.flatMap(_.split("\n")).map(x => s"  $x").mkString("\n")
+      s"$head\n$childString"
+    }
+    case AnnotatedTerminal(head, word) => s"$head  $word"
+    case AnnotatedHole(head) => s"$head"
+    case AnnotatedEmpty => "<e>"
+  }
 }
 
 case class AnnotatedNonterminal[A](

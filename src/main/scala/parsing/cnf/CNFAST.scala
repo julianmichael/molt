@@ -43,6 +43,22 @@ sealed abstract class CNFAST[+A] {
     case _ => None
   }
 
+  def prettyString: String = this match {
+    case CNFBinaryNonterminal(head, left, right) => {
+      val childString = List(left, right).flatMap(child => {
+        child.prettyString.split("\n").map(x => s"  $x")
+      }).mkString("\n")
+      s"$head\n$childString"
+    }
+    case CNFUnaryNonterminal(head, child) => {
+      val childString = child.prettyString.split("\n").map(x => s"  $x").mkString("\n")
+      s"$head\n$childString"
+    }
+    case CNFTerminal(head, token) => s"$head  $token"
+    case CNFHole(head) => s"$head"
+    case CNFEmpty => "<e>"
+  }
+
   val label: CNFTag[A]
 }
 
