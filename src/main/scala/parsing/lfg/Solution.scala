@@ -257,37 +257,53 @@ class LFGSolver(
     })
   }, rootRep)
 
+  /*
+   * TODO: define method on all equations that returns approx. branching factor?
+   * Preferred order of resolving equations to minimize branching:
+   * 1. Defining/Assignment equations w/o inside-out application
+   * 2. Defining/Containment equations w/o inside-out application
+   * 3. Conjunctions
+   * 4. Disjunctions: some branching
+   * 5. Defining equations with inside-out application: CRAZY branching
+   * And finally, constraint equations.
+   */
   def solvePartial(fdesc: FDescription): SolutionState[FStructure] = {
     val definingEqs = fdesc collect { case Defining(eq) => eq }
-    val compoundEqs = fdesc collect { case Compound(eq) => eq }
+    val (insideOut, nonInsideOut) = definingEqs.partition(_.hasInsideOutApplication)
+    val conjunctions = fdesc collect { case Compound(eq@Conjunction(_)) => eq }
+    val disjunctions = fdesc collect { case Compound(eq@Disjunction(_)) => eq }
     val constraintEqs = fdesc collect { case Constraint(eq) => eq }
 
-    definingEqs.headOption match {
-      // first, find the minimal f-structure satisfying the non-compound defining equations
+    nonInsideOut.headOption match {
       case Some(head) => for {
         _ <- addDefine(head)
         sol <- solvePartial(fdesc - Defining(head))
       } yield sol
-      // no more defining equations left, so process compound equations. We
-      // delayed the branching until now for efficiency. Recurse because some of
-      // the inner equations may be defining equations.
-      case None => compoundEqs.headOption match {
-        case Some(head@Conjunction(eqs)) =>
-          solvePartial(fdesc - Compound(head) ++ eqs)
-        case Some(head@Disjunction(eqs)) => for {
-          // this is where the branching happens!
-          disjunct <- eqs.toList.liftM[SolutionStateT]
-          sol <- solvePartial(fdesc - Compound(head) + disjunct)
-        } yield sol
-        // no more compound equations left, so verify that the constraints hold
-        case None => constraintEqs.headOption match {
-          case Some(head) => for {
-            fstruct <- getFStructure
-            groups <- getGroups
-            if satisfied(head, fstruct, groups)
-            sol <- solvePartial(fdesc - Constraint(head))
+      case None => conjunctions.headOption match {
+        case Some(Conjunction(eqs)) =>
+          solvePartial(fdesc - Compound(Conjunction(eqs)) ++ eqs)
+        case None => disjunctions.headOption match {
+          case Some(Disjunction(eqs)) => for {
+            // this is where the branching happens!
+            disjunct <- eqs.toList.liftM[SolutionStateT]
+            sol <- solvePartial(fdesc - Compound(Disjunction(eqs)) + disjunct)
           } yield sol
-          case None => makeFStructure
+          case None => insideOut.headOption match {
+            case Some(head) => for {
+              _ <- addDefine(head)
+              sol <- solvePartial(fdesc - Defining(head))
+            } yield sol
+            // no more compound equations left, so verify that the constraints hold
+            case None => constraintEqs.headOption match {
+              case Some(head) => for {
+                fstruct <- getFStructure
+                groups <- getGroups
+                if satisfied(head, fstruct, groups)
+                sol <- solvePartial(fdesc - Constraint(head))
+              } yield sol
+              case None => makeFStructure
+            }
+          }
         }
       }
     }

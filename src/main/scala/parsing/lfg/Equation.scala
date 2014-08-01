@@ -65,6 +65,11 @@ sealed abstract class DefiningEquation[ID <: Identifier] {
     case Assignment(l, r) => l.identifiers ++ r.identifiers
     case Containment(e, c) => e.identifiers ++ c.identifiers
   }
+
+  def hasInsideOutApplication: Boolean = this match {
+    case Assignment(l, r) => l.hasInsideOutApplication || r.hasInsideOutApplication
+    case Containment(e, c) => e.hasInsideOutApplication || c.hasInsideOutApplication
+  }
 }
 case class Assignment[ID <: Identifier](
   left: Expression[ID], right: Expression[ID])

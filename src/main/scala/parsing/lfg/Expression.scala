@@ -12,6 +12,12 @@ sealed abstract class Expression[ID <: Identifier] {
     case ValueExpression(_) => Set.empty[ID]
     case SemanticFormExpression(_) => Set.empty[ID]
   }
+
+  def hasInsideOutApplication: Boolean = this match {
+    case FunctionalExpression(iexp) => iexp.hasInsideOutApplication
+    case ValueExpression(_) => false
+    case SemanticFormExpression(_) => false
+  }
 }
 case class FunctionalExpression[ID <: Identifier](exp: IdentifyingExpression[ID])
   extends Expression[ID]
@@ -32,6 +38,12 @@ abstract class IdentifyingExpression[ID <: Identifier] {
     case BareIdentifier(x) => Set(x)
     case Application(exp, _) => exp.identifiers
     case InverseApplication(_, exp) => exp.identifiers
+  }
+
+  def hasInsideOutApplication: Boolean = this match {
+    case BareIdentifier(_) => false
+    case Application(exp, _) => exp.hasInsideOutApplication
+    case InverseApplication(_, _) => true
   }
 }
 
