@@ -6,13 +6,14 @@ import parsing.cfg._
 class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
   val lexicalCategories: Set[LFGLexicalCategory[A]],
-  val startSymbol: Option[A] = None,
-  val governableGrammaticalFunctions: Set[String] = Set.empty[String]) extends Grammar[FStructure] {
+  val startSymbols: Set[A] = Set.empty[A]) extends Grammar[FStructure] {
 
   private[this] val solve = new LFGSolver(Map(
     "DF" -> List("TOP", "FOC"),
-    "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL")
+    "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")
   ))
+  private[this] val governableGrammaticalFunctions: Set[String] =
+    Set("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")
 
   override def parseTokens(tokens: Seq[String]): Set[FStructure] = for {
     ast <- cfGrammar.parseTokens(tokens)
@@ -31,7 +32,7 @@ class LexicalFunctionalGrammar[A](
   private[this] val cfgLexicalCategories: Set[LexicalCategory[A]] = lexicalCategories.collect {
     case (x: LexicalCategory[A]) => x
   }
-  val cfGrammar = new ContextFreeGrammar[A](cfgProductions, cfgLexicalCategories, startSymbol)
+  val cfGrammar = new ContextFreeGrammar[A](cfgProductions, cfgLexicalCategories, startSymbols)
 
   private[this] val productionToSetOfChildSpecifications: Map[CFGProduction[A], Set[List[Specification]]] =
     productions.groupBy(_.cfgProduction).map {

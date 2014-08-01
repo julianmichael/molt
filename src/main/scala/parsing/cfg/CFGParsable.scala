@@ -62,7 +62,7 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
 
   // the grammar just requires the productions, lexical categories, and start symbol
   final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] =
-    new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Some(this))
+    new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Set(this))
 }
 
 /*

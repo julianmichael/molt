@@ -194,7 +194,7 @@ class LFGSolver(
           case FMapping(m) => m
           case _ => Map.empty[Feature, AbsoluteIdentifier]
         }
-        expID = map(feat)
+        expID <- map.get(feat)
         expRepID = groups.find(expID).get
       } yield expRepID
       case InverseApplication(feat, e) => for {

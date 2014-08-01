@@ -1,7 +1,7 @@
 To Do List
 ==========
 
- * inverse function application
+ * Try wrapping parsing monad in a scalaz Free monad to avoid stack overflows
 
  * A way to specify wildcards and do basic functional uncertainty
 

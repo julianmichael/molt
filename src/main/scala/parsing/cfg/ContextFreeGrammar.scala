@@ -9,7 +9,7 @@ import parsing.cnf._
 class ContextFreeGrammar[A](
   val productions: Set[CFGProduction[A]],
   val lexicalCategories: Set[LexicalCategory[A]],
-  val startSymbol: Option[A] = None) extends Grammar[AST[A]] {
+  val startSymbols: Set[A] = Set.empty[A]) extends Grammar[AST[A]] {
 
   // we change the grammar to Chomsky Normal Form* for parsing
   // * with unary productions 
@@ -18,7 +18,7 @@ class ContextFreeGrammar[A](
   // nonterminals are just everything that appears at the head of a (non-lexical) production
   lazy val nonterminals = productions.map(_.head)
 
-  lazy val cnfGrammar = new CNFGrammar[A](cnfProductions, lexicalCategories, startSymbol.toSet)
+  lazy val cnfGrammar = new CNFGrammar[A](cnfProductions, lexicalCategories, startSymbols)
 
   override def parseTokens(tokens: Seq[String]) = {
     val cnfParses = cnfGrammar.parseTokens(tokens)

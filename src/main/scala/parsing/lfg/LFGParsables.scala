@@ -126,15 +126,19 @@ object LFGParsables {
       List(Terminal("!"), EquationParser) -> (c => for {
         eq <- EquationParser.fromAST(c(1))
       } yield eq.negation),
-      List(EquationParser, Terminal("&"), EquationParser) -> (c => for {
-        left <- EquationParser.fromAST(c(0))
-        if !(left.isInstanceOf[Compound[RelativeIdentifier]])
-        right <- EquationParser.fromAST(c(2))
+      List(Optional(Terminal("(")), EquationParser, Terminal("&"), EquationParser, Optional(Terminal(")"))) -> (c => for {
+        left <- EquationParser.fromAST(c(1))
+        right <- EquationParser.fromAST(c(3))
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(4))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield Compound(Conjunction(Set(left, right)))),
-      List(EquationParser, Terminal("|"), EquationParser) -> (c => for {
-        left <- EquationParser.fromAST(c(0))
-        if !(left.isInstanceOf[Compound[RelativeIdentifier]])
-        right <- EquationParser.fromAST(c(2))
+      List(Optional(Terminal("(")), EquationParser, Terminal("|"), EquationParser, Optional(Terminal(")"))) -> (c => for {
+        left <- EquationParser.fromAST(c(1))
+        right <- EquationParser.fromAST(c(3))
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(4))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield Compound(Disjunction(Set(left, right)))),
       List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
         left <- ExpressionParser.fromAST(c(0))
