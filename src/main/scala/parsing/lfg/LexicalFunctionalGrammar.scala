@@ -6,26 +6,18 @@ import parsing.cfg._
 class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
   val lexicalCategories: Set[LFGLexicalCategory[A]],
-  val startSymbols: Set[A] = Set.empty[A]) extends Grammar[FStructure] {
+  val startSymbols: Set[A],
+  val wildcards: Map[Feature, List[Feature]] = Map.empty[Feature, List[Feature]],
+  val argumentFunctions: Set[Feature] = Set.empty[Feature]) extends Grammar[FStructure] {
 
-  private[this] val solve = new LFGSolver(Map(
-    "DF" -> List("TOP", "FOC"),
-    "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")
-  ))
-  private[this] val governableGrammaticalFunctions: Set[String] =
-    Set("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")
+  private[this] val solve = new LFGSolver(wildcards)
 
   override def parseTokens(tokens: Seq[String]): Set[FStructure] = for {
     ast <- cfGrammar.parseTokens(tokens)
     annotatedAST <- annotations(ast)
     (fdesc, rootID) = annotatedAST.fDescription
     fStruct <- solve(fdesc, rootID)
-    if fStruct.isComplete && fStruct.isCoherent(governableGrammaticalFunctions)
-    _ = {
-      // println(ast.prettyString)
-      // println(fdesc.map(LFGParsables.EquationParser.makeString).mkString("\n"))
-      // println(LFGParsables.FStructureParser.makeString(fStruct))
-    }
+    if fStruct.isComplete && fStruct.isCoherent(argumentFunctions)
   } yield fStruct
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)

@@ -29,12 +29,23 @@ class LFGTestSuite extends FunSuite {
     parseForced[LFGLexicalCategory[String]]("""
         V:      seem:       up PRED = 'seem<XCOMP>SUBJ'   ,
                             up SUBJ = up XCOMP SUBJ       ,
-      ((up SUBJ NUM = SG & up SUBJ PERS = THD) & up TENSE = PRESENT) | up VFORM = BASE,
+                            ((!(up SUBJ NUM = SG &
+                                up SUBJ PERS = THD)) &
+                                up TENSE = PRESENT) |
+                              up VFORM = BASE,
+
                 try:        up PRED = 'try<SUBJ,XCOMP>'   ,
                             up SUBJ = up XCOMP SUBJ       ,
-      ((up SUBJ NUM = SG & up SUBJ PERS = THD) & up TENSE = PRESENT) | up VFORM = BASE,
+                            ((!(up SUBJ NUM = SG &
+                                up SUBJ PERS = THD)) &
+                                up TENSE = PRESENT) |
+                              up VFORM = BASE,
+
                 hide:       up PRED = 'hide<SUBJ,OBJ>'    ,
-      ((up SUBJ NUM = SG & up SUBJ PERS = THD) & up TENSE = PRESENT) | up VFORM = BASE
+                            ((!(up SUBJ NUM = SG &
+                                up SUBJ PERS = THD)) &
+                                up TENSE = PRESENT) |
+                              up VFORM = BASE
                                                           """),
     parseForced[LFGLexicalCategory[String]]("""
         C:      did:        up TENSE = PAST               ,
@@ -70,15 +81,17 @@ class LFGTestSuite extends FunSuite {
 
                 what:       up PRED = 'pro'              ,
                             up PRONTYPE = WH             ,
-                            (FOC up) MOOD = INTERROGATIVE
+                            (FOC up) MOOD =c INTERROGATIVE
                 """))
 
   val productions =
     // Complement
+    // TODO discover why this line isn't working:
+    // ((up OBJ = down | up XCOMP OBJ = down) | up XCOMP XCOMP OBJ = down)
     parseForced[Set[LFGProduction[String]]]("""
       CP ->
-        DP:  up FOCUS = down,
-             up XCOMP XCOMP OBJ = down,
+        DP:  up FOC = down,
+             (up XCOMP OBJ = down | up XCOMP XCOMP OBJ = down),
              down PRONTYPE =c WH,
         CB:  up = down,
 
@@ -90,6 +103,7 @@ class LFGTestSuite extends FunSuite {
     parseForced[Set[LFGProduction[String]]]("""
       IP ->
         DP:  up TOP = down,
+             up OBJ = down | up XCOMP OBJ = down,
         IP:  up = down,
 
       IP ->
@@ -111,9 +125,6 @@ class LFGTestSuite extends FunSuite {
     """) ++
     // Determiner
     parseForced[Set[LFGProduction[String]]]("""
-      DP ->
-        <e>: (AF up) TOP = up,
-
       DP ->
         DB: up = down,
 
@@ -176,7 +187,11 @@ class LFGTestSuite extends FunSuite {
   val grammar = new LexicalFunctionalGrammar[String](
     productions = productions,
     lexicalCategories = partsOfSpeech,
-    startSymbols = Set("IP", "CP"))
+    startSymbols = Set("IP", "CP"),
+    wildcards = Map(
+      "DF" -> List("TOP", "FOC"),
+      "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")),
+    argumentFunctions = Set("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP"))
 
   def testSentence(tokens: List[String], good: Boolean = true) = {
     println(tokens.mkString(" "))
@@ -203,10 +218,17 @@ class LFGTestSuite extends FunSuite {
   test(s"Gary I kissed") {
     testSentence(List("Gary", "I", "kissed"))
   }
+  test("what did the entity seem to try to hide") {
+    testSentence(List("what","did","the","entity","seem","to",
+                      "try","to","hide"))
+  }
   /*
+  test("did the entity hide Gary") {
+    testSentence(List("did","the","entity","hide", "Gary"))
+  }
+  */
   test("what did the strange green entity seem to try to quickly hide") {
     testSentence(List("what","did","the","strange","green","entity","seem","to",
                       "try","to","quickly","hide"))
   }
-  */
 }

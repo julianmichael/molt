@@ -61,7 +61,7 @@ object LFGParsables {
           _ <- addString("}")
         } yield ()
         case FValue(v) => addPrefixedString(prefix, v)
-        case FSemanticForm(s) => addPrefixedString(prefix, SemanticFormParser.makeString(s))
+        case FSemanticForm(_, s) => addPrefixedString(prefix, SemanticFormParser.makeString(s))
       }
       (for {
         _ <- prettyForID("", root)
@@ -123,8 +123,11 @@ object LFGParsables {
 
   implicit object EquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
     override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
-      List(Terminal("!"), EquationParser) -> (c => for {
-        eq <- EquationParser.fromAST(c(1))
+      List(Optional(Terminal("(")), Terminal("!"), EquationParser, Optional(Terminal(")"))) -> (c => for {
+        eq <- EquationParser.fromAST(c(2))
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(3))
+        if leftBrace.isEmpty == rightBrace.isEmpty
       } yield eq.negation),
       List(Optional(Terminal("(")), EquationParser, Terminal("&"), EquationParser, Optional(Terminal(")"))) -> (c => for {
         left <- EquationParser.fromAST(c(1))
@@ -265,6 +268,6 @@ object LFGParsables {
   object FeatureListParser extends DelimitedList[Feature](",", Alphabetical)
 
   object ValueCategory extends CFGParsableLexicalCategory {
-    def member(s: String) = s != "up" && s != "down" && s.forall(_.isLetter)
+    def member(s: String) = s != "up" && s != "down" && s.matches("[A-Za-z0-9+-]+")
   }
 }

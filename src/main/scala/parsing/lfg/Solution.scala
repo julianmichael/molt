@@ -129,8 +129,8 @@ class LFGSolver(
         state(FSet(s1 ++ s2)).lift[List]
       case (FValue(v1), FValue(v2)) if(v1 == v2) =>
         state(FValue(v1)).lift[List]
-      case (FSemanticForm(s1), FSemanticForm(s2)) if(s1 == s2) =>
-        state(FSemanticForm(s1)).lift[List]
+      case (s1@FSemanticForm(_, _), s2@FSemanticForm(_, _)) if(s1 == s2) =>
+        state(s1).lift[List]
       // THIS CASE is where violations of Uniqueness cause failure!
       case _ => failure
     }
@@ -164,7 +164,8 @@ class LFGSolver(
       } yield id
       case SemanticFormExpression(s) => for {
         id <- freshID
-        _ <- addMapping(id, FSemanticForm(s))
+        semID <- freshID
+        _ <- addMapping(id, FSemanticForm(semID, s))
       } yield id
     }
 
@@ -202,16 +203,19 @@ class LFGSolver(
         subID <- testExpression(FunctionalExpression(e), fstruct, groups)
         // next we need to find every ID that corresponds to a map that maps by
         // `feat` to an id whose rep. ID is subID.
-        // inverseApplyID <- ??? // list of all such IDs
-        // inverseRepID = groups.find(inverseApplyID).get
-      } yield ???
+        inverseApplyID <- groups.representatives
+        FMapping(m) <- fstruct.map.get(inverseApplyID)
+        mappedTo <- m.get(feat)
+        if groups.find(mappedTo).get == subID
+      } yield inverseApplyID
     }
     case ValueExpression(v) => for {
       id <- (fstruct.map collect { case (k, FValue(`v`)) => k }).toList
       rep = groups.find(id).get
     } yield rep
+    // TODO consider making this case automatically false!
     case SemanticFormExpression(s) => for {
-      id <- (fstruct.map collect { case (k, FSemanticForm(`s`)) => k }).toList
+      id <- (fstruct.map collect { case (k, FSemanticForm(_, `s`)) => k }).toList
       rep = groups.find(id).get
     } yield rep
   }
