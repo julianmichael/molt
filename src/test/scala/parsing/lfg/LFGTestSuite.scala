@@ -86,12 +86,13 @@ class LFGTestSuite extends FunSuite {
 
   val productions =
     // Complement
-    // TODO discover why this line isn't working:
-    // ((up OBJ = down | up XCOMP OBJ = down) | up XCOMP XCOMP OBJ = down)
     parseForced[Set[LFGProduction[String]]]("""
       CP ->
+        CB:  up = down,
+
+      CP ->
         DP:  up FOC = down,
-             (up XCOMP OBJ = down | up XCOMP XCOMP OBJ = down),
+             up OBJ = down | up XCOMP OBJ = down | up XCOMP XCOMP OBJ = down,
              down PRONTYPE =c WH,
         CB:  up = down,
 
@@ -222,11 +223,9 @@ class LFGTestSuite extends FunSuite {
     testSentence(List("what","did","the","entity","seem","to",
                       "try","to","hide"))
   }
-  /*
   test("did the entity hide Gary") {
     testSentence(List("did","the","entity","hide", "Gary"))
   }
-  */
   test("what did the strange green entity seem to try to quickly hide") {
     testSentence(List("what","did","the","strange","green","entity","seem","to",
                       "try","to","quickly","hide"))

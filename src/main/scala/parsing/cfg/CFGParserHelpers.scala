@@ -33,6 +33,7 @@ object CFGParserHelpers {
   }
 
   case object Alphabetical extends RegexLexicalCategory("[a-zA-Z]+")
+  case object Alphanumeric extends RegexLexicalCategory("[a-zA-Z0-9]+")
 
   case class Plus[A](parsable: CFGParsable[A]) extends ComplexCFGParsable[List[A]] {
     final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[List[A]])] = Map(
@@ -58,6 +59,21 @@ object CFGParserHelpers {
       List(parsable) -> (c => for {
         end <- parsable.fromAST(c(0))
       } yield List(end))
+    )
+  }
+
+  case class MultiDelimitedList[A](delimiter: String, parsable: CFGParsable[A]) extends ComplexCFGParsable[List[A]] {
+    final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[List[A]])] = Map(
+      List(parsable, Terminal(delimiter), parsable) -> ( c =>
+        for {
+          fst <- parsable.fromAST(c(0))
+          snd <- parsable.fromAST(c(2))
+        } yield fst :: snd :: Nil),
+      List(parsable, Terminal(delimiter), this) -> ( c =>
+        for {
+          head <- parsable.fromAST(c(0))
+          tail <- this.fromAST(c(2))
+        } yield head :: tail)
     )
   }
 

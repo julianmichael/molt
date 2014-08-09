@@ -24,7 +24,7 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
   // ambiguous; i.e., they cannot overlap with each other so as to lead to
   // multiple possible tokenizations.
   // TODO come up with a better solution than JUST individual token symbols
-  val tokens: Set[String] = Set()
+  val tokens: Set[String] = Set.empty[String]
 
   val tag: ASTTag[CFGParsable[_]]
 
@@ -33,9 +33,12 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
 
   // List of all of the Parsables that are components of this one (used in productions)
   final lazy val children: Set[CFGParsable[_]] = {
-    val topLayer = synchronousProductions.keySet.flatten - this
-    val below = topLayer.flatMap(_.children)
-    topLayer ++ below - this
+    childrenWithout(Set(this))
+  }
+  private def childrenWithout(prohib: Set[CFGParsable[_]]): Set[CFGParsable[_]] = {
+    val topLayer = synchronousProductions.keySet.flatten -- prohib
+    val below = topLayer.flatMap(_.childrenWithout(topLayer ++ prohib))
+    topLayer ++ below
   }
 
   // all the lexical categories required to parse this Parsable
@@ -51,11 +54,12 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
     }
 
   final lazy val productions: Set[CFGProduction[CFGParsable[_]]] = {
-    children.foldRight(processedSynchronousProductions.keySet)(_.productions ++ _)
+    processedSynchronousProductions.keySet ++
+    children.flatMap(_.processedSynchronousProductions.keySet)
   }
 
   final lazy val allTokens: Set[String] =
-    children.foldLeft(tokens)(_ ++ _.allTokens)
+    tokens ++ children.flatMap(_.tokens)
 
   // TODO might want something more general than always the basic tokenizer
   final lazy val tokenizer: Tokenizer = new MaximalMunchTokenizer(allTokens)

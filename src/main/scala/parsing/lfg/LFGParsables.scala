@@ -122,46 +122,45 @@ object LFGParsables {
   }
 
   implicit object EquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
+    object NonCompoundEquationParser extends ComplexCFGParsable[Equation[RelativeIdentifier]] {
+      override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
+        List(Terminal("("), EquationParser, Terminal(")")) -> (c => for {
+          eq <- EquationParser.fromAST(c(1))
+        } yield eq),
+        List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
+          left <- ExpressionParser.fromAST(c(0))
+          right <- ExpressionParser.fromAST(c(2))
+        } yield Defining(Assignment(left, right))),
+        List(ExpressionParser, Terminal("<"), ExpressionParser) -> (c => for {
+          elem <- ExpressionParser.fromAST(c(0))
+          cont <- ExpressionParser.fromAST(c(2))
+        } yield Defining(Containment(elem, cont))),
+        List(ExpressionParser, Terminal("=c"), ExpressionParser) -> (c => for {
+          left <- ExpressionParser.fromAST(c(0))
+          right <- ExpressionParser.fromAST(c(2))
+        } yield Constraint(Equals(true, left, right))),
+        List(ExpressionParser, Terminal("<c"), ExpressionParser) -> (c => for {
+          elem <- ExpressionParser.fromAST(c(0))
+          cont <- ExpressionParser.fromAST(c(2))
+        } yield Constraint(Contains(true, elem, cont))),
+        List(ExpressionParser) -> (c => for {
+          exp <- ExpressionParser.fromAST(c(0))
+        } yield Constraint(Exists(true, exp)))
+      )
+    }
     override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[Equation[RelativeIdentifier]])] = Map(
-      List(Optional(Terminal("(")), Terminal("!"), EquationParser, Optional(Terminal(")"))) -> (c => for {
-        eq <- EquationParser.fromAST(c(2))
-        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
-        rightBrace <- Optional(Terminal(")")).fromAST(c(3))
-        if leftBrace.isEmpty == rightBrace.isEmpty
+      List(NonCompoundEquationParser) -> (c => for {
+        eq <- NonCompoundEquationParser.fromAST(c(0))
+      } yield eq),
+      List(Terminal("!"), NonCompoundEquationParser) -> (c => for {
+        eq <- NonCompoundEquationParser.fromAST(c(1))
       } yield eq.negation),
-      List(Optional(Terminal("(")), EquationParser, Terminal("&"), EquationParser, Optional(Terminal(")"))) -> (c => for {
-        left <- EquationParser.fromAST(c(1))
-        right <- EquationParser.fromAST(c(3))
-        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
-        rightBrace <- Optional(Terminal(")")).fromAST(c(4))
-        if leftBrace.isEmpty == rightBrace.isEmpty
-      } yield Compound(Conjunction(Set(left, right)))),
-      List(Optional(Terminal("(")), EquationParser, Terminal("|"), EquationParser, Optional(Terminal(")"))) -> (c => for {
-        left <- EquationParser.fromAST(c(1))
-        right <- EquationParser.fromAST(c(3))
-        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
-        rightBrace <- Optional(Terminal(")")).fromAST(c(4))
-        if leftBrace.isEmpty == rightBrace.isEmpty
-      } yield Compound(Disjunction(Set(left, right)))),
-      List(ExpressionParser, Terminal("="), ExpressionParser) -> (c => for {
-        left <- ExpressionParser.fromAST(c(0))
-        right <- ExpressionParser.fromAST(c(2))
-      } yield Defining(Assignment(left, right))),
-      List(ExpressionParser, Terminal("<"), ExpressionParser) -> (c => for {
-        elem <- ExpressionParser.fromAST(c(0))
-        cont <- ExpressionParser.fromAST(c(2))
-      } yield Defining(Containment(elem, cont))),
-      List(ExpressionParser, Terminal("=c"), ExpressionParser) -> (c => for {
-        left <- ExpressionParser.fromAST(c(0))
-        right <- ExpressionParser.fromAST(c(2))
-      } yield Constraint(Equals(true, left, right))),
-      List(ExpressionParser, Terminal("<c"), ExpressionParser) -> (c => for {
-        elem <- ExpressionParser.fromAST(c(0))
-        cont <- ExpressionParser.fromAST(c(2))
-      } yield Constraint(Contains(true, elem, cont))),
-      List(ExpressionParser) -> (c => for {
-        exp <- ExpressionParser.fromAST(c(0))
-      } yield Constraint(Exists(true, exp)))
+      List(MultiDelimitedList("&", NonCompoundEquationParser)) -> (c => for {
+        eqs <- MultiDelimitedList("&", NonCompoundEquationParser).fromAST(c(0))
+      } yield Compound(Conjunction(eqs.toSet))),
+      List(MultiDelimitedList("|", NonCompoundEquationParser)) -> (c => for {
+        eqs <- MultiDelimitedList("|", NonCompoundEquationParser).fromAST(c(0))
+      } yield Compound(Disjunction(eqs.toSet)))
     )
 
     def makeString[ID <: Identifier](eq: Equation[ID]): String = eq match {
