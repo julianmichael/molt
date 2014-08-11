@@ -15,7 +15,7 @@ package object lfg {
     extends MonadPlus[({type λ[α] = StateT[F, S, α]})#λ] {
     implicit def F: MonadPlus[F]
 
-    private type StateTForThisState[Q[+_], R] = StateT[Q, S, R]
+    private type StateTForThisState[G[+_], A] = StateT[G, S, A]
     def empty[A]: StateT[F, S, A] = (F.empty[A]).liftM[StateTForThisState]
     def plus[A](
         a: StateT[F, S, A],
