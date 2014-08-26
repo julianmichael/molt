@@ -20,13 +20,13 @@ package object cfg {
     case CNFBinaryNonterminal(Chunk(_), left, right) => left :: flattenCNFAST(right)
     case CNFHole(Chunk(names))                       => names.map(name => name match {
       case ASTNormalTag(x) => CNFHole(Single(x))
-      case ASTEmptyTag => CNFEmpty
+      case ASTEmptyTag => CNFEmpty()
     })
     case _                                           => cnfAst :: Nil
   }
 
   def convertAST[A](cnfAst: CNFAST[CNFConversionTag[A]]): Option[AST[A]] = cnfAst match {
-    case CNFEmpty => Some(ASTEmpty)
+    case CNFEmpty() => Some(ASTEmpty)
     case CNFHole(Single(head)) => Some(ASTHole(head))
     case CNFBinaryNonterminal(Single(head), left, right) => {
       // TODO change to sequence and return none if there was a failure

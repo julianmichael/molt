@@ -23,9 +23,11 @@ object RelativeIdentifierTestParameters extends ParsableTestParameters[RelativeI
   override val productions = Some(Set[CFGProduction[CFGParsable[_]]](
     CFGProduction(RelativeIdentifierParser, List(ASTNormalTag(Terminal("up")))),
     CFGProduction(RelativeIdentifierParser, List(ASTNormalTag(Terminal("down"))))))
-  override val cnfProductions = Some(Set[CNFProduction[CFGParsable[_]]](
-    Unary(CNFNormalTag(RelativeIdentifierParser), CNFNormalTag(Terminal("up"))),
-    Unary(CNFNormalTag(RelativeIdentifierParser), CNFNormalTag(Terminal("down")))))
+
+  import CNFConversionTag._
+  override val cnfProductions = Some(Set[CNFProduction[CNFConversionTag[CFGParsable[_]]]](
+    Unary(Single(RelativeIdentifierParser), ASTNormalTag(Single(Terminal("up")))),
+    Unary(Single(RelativeIdentifierParser), ASTNormalTag(Single(Terminal("down"))))))
   override val testParses = List[TestParse[RelativeIdentifier]](
     TestParse(
       Some("up"),

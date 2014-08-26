@@ -16,9 +16,11 @@ class PlusTestParameters[A](parsable: CFGParsable[A]) extends ParsableTestParame
     CFGProduction(Plus(parsable), List[ASTTag[CFGParsable[_]]](ASTNormalTag(parsable), ASTNormalTag(Plus(parsable)))),
     CFGProduction(Plus(parsable), List[ASTTag[CFGParsable[_]]](ASTNormalTag(parsable)))) ++
     parsable.grammar.productions)
-  override val cnfProductions = Some(Set(
-    Binary(CNFNormalTag(Plus(parsable)), CNFNormalTag(parsable), CNFNormalTag(Plus(parsable))),
-    Unary(CNFNormalTag(Plus(parsable)), CNFNormalTag(parsable))) ++
+
+  import CNFConversionTag._
+  override val cnfProductions = Some(Set[CNFProduction[CNFConversionTag[CFGParsable[_]]]](
+    Binary(Single(Plus(parsable)), ASTNormalTag(Single(parsable)), ASTNormalTag(Single(Plus(parsable)))),
+    Unary(Single(Plus(parsable)), ASTNormalTag(Single(parsable)))) ++
     parsable.grammar.cnfProductions)
   override val testParses = Nil
 }

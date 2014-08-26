@@ -32,7 +32,7 @@ sealed abstract class CNFAST[+A] {
     }
     case CNFTerminal(head, token) => s"$head  $token"
     case CNFHole(head) => s"$head"
-    case CNFEmpty => "<e>"
+    case CNFEmpty() => "<e>"
   }
 
   val tag: ASTTag[A] = this match {
@@ -40,7 +40,7 @@ sealed abstract class CNFAST[+A] {
     case CNFUnaryNonterminal(label, _) => ASTNormalTag(label)
     case CNFHole(label) => ASTNormalTag(label)
     case CNFTerminal(label, _) => ASTNormalTag(label)
-    case CNFEmpty => ASTEmptyTag
+    case CNFEmpty() => ASTEmptyTag
   }
 }
 
@@ -52,4 +52,4 @@ case class CNFHole[A](
   label: A) extends CNFAST[A]
 case class CNFTerminal[A](
   label: A, token: String) extends CNFAST[A]
-case object CNFEmpty extends CNFAST[Nothing]
+case class CNFEmpty[A]() extends CNFAST[A]

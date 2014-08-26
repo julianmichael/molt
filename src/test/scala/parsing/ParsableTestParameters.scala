@@ -18,7 +18,7 @@ trait ParsableTestParameters[A] {
   def nonterminals: Option[Set[CFGParsable[_]]]
   def tokens: Option[Set[String]]
   def productions: Option[Set[CFGProduction[CFGParsable[_]]]]
-  def cnfProductions: Option[Set[CNFProduction[CFGParsable[_]]]]
+  def cnfProductions: Option[Set[CNFProduction[CNFConversionTag[CFGParsable[_]]]]]
   def testParses: List[TestParse[A]]
 }
 

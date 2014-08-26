@@ -66,7 +66,7 @@ class CNFGrammar[A](
       case _ => false
     })).toMap
     var nullable =
-      if(allTags(ASTEmptyTag)) Set[(Set[A], CNFAST[A])]((Set.empty[A], CNFEmpty))
+      if(allTags(ASTEmptyTag)) Set[(Set[A], CNFAST[A])]((Set.empty[A], CNFEmpty()))
       else Set.empty[(Set[A], CNFAST[A])]
     var todo = nullable
     while(!todo.isEmpty) {
