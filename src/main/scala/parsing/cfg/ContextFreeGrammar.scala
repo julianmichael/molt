@@ -24,9 +24,8 @@ class ContextFreeGrammar[A](
   lazy val cnfGrammar =
     new CNFGrammar[CNFConversionTag[A]](cnfProductions, cnfLexicalCategories, cnfStartSymbols)
 
-  override def parseTokens(tokens: Seq[String]) = {
-    val cnfParses = cnfGrammar.parseTokens(tokens)
-    val validParses = cnfParses.map(convertAST).flatten
-    validParses
-  }
+  override def parseTokens(tokens: Seq[String]) = for {
+    cnfParse <- cnfGrammar.parseTokens(tokens)
+    validParse <- convertAST(cnfParse)
+  } yield validParse
 }
