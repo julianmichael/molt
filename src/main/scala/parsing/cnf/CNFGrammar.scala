@@ -2,13 +2,13 @@ package parsing.cnf
 
 import parsing.LexicalCategory
 import parsing.Grammar
+import parsing.cfg.ASTTag
+import parsing.cfg.ASTNormalTag
+import parsing.cfg.ASTEmptyTag
 import util.Memoize
 // Contains everything we need in order to parse, and also parses!
 // We let the stuff that appears in the productions inform us what
-// symbols are terminal and non-terminal. However, we allow that
-// one of the terminal symbols may be ambiguous and allow ANY token
-// to be its child. This allows, say, a formula with any propositional
-// signature to be parsed without regard for the particular signature.
+// symbols are terminal and non-terminal.
 
 // The type parameter A is the type of symbol used in productions and ASTs. It
 // will typically be either String or Parsable[_].
@@ -17,70 +17,72 @@ class CNFGrammar[A](
   val lexicalCategories: Set[LexicalCategory[A]],
   val startSymbols: Set[A] = Set.empty[A]) extends Grammar[CNFAST[A]] {
 
-  private[this] type S = CNFTag[A]
+  private[this] type Symbol = ASTTag[A]
 
-  private[this] val allSymbols =
-    productions.flatMap(_.symbols) ++ lexicalCategories.map(cat => CNFNormalTag(cat.symbol))
+  private[this] val allTags =
+    productions.flatMap(_.tags) ++ lexicalCategories.map(x => ASTNormalTag(x.symbol))
+  private[this] val allLabels =
+    productions.flatMap(_.symbols) ++ lexicalCategories.map(_.symbol)
 
-  private[this] lazy val labelToDerivationsWithHole: Map[CNFTag[A], Set[CNFAST[A]]] = {
-    def derivationsWithProhibitedRoots(prohib: Set[CNFTag[A]], subtree: CNFAST[A]): Set[CNFAST[A]] = {
-      val symbol = subtree.label
-      val oneLevelTrees = productions.flatMap (prod => prod match {
+  private[this] lazy val labelToDerivationsWithHole: Map[A, Set[CNFAST[A]]] = {
+    def derivationsWithProhibitedRoots(prohib: Set[A], subtree: CNFAST[A]): Set[CNFAST[A]] = {
+      val symbol = subtree.tag
+      val oneLevelTreesWithLabels = productions.flatMap (prod => prod match {
         case Unary(label, child) if child == symbol && !prohib(label) =>
-          Set[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
+          Set[(CNFAST[A], A)]((CNFUnaryNonterminal(label, subtree), label))
         case Binary(label, left, right) if !prohib(label) => {
-          val lefters = if(left == subtree.label) { for {
-            emptyRightDerivation <- nonterminalsToNullParseTrees(right)
-          } yield CNFBinaryNonterminal(label, subtree, emptyRightDerivation) }
-          else Set.empty[CNFAST[A]]
-          val righters = if(right == subtree.label) { for {
-            emptyLeftDerivation <- nonterminalsToNullParseTrees(left)
-          } yield CNFBinaryNonterminal(label, emptyLeftDerivation, subtree) }
-          else Set.empty[CNFAST[A]]
+          val lefters = if(left == subtree.tag) { for {
+            emptyRightDerivation <- tagsToNullParseTrees(right)
+          } yield (CNFBinaryNonterminal(label, subtree, emptyRightDerivation), label) }
+          else Set.empty[(CNFAST[A], A)]
+          val righters = if(right == subtree.tag) { for {
+            emptyLeftDerivation <- tagsToNullParseTrees(left)
+          } yield (CNFBinaryNonterminal(label, emptyLeftDerivation, subtree), label) }
+          else Set.empty[(CNFAST[A], A)]
           lefters ++ righters
         }
-        case _ => Set.empty[CNFAST[A]]
+        case _ => Set.empty[(CNFAST[A], A)]
       })
-      oneLevelTrees.flatMap(tree =>
-        derivationsWithProhibitedRoots(prohib + tree.label, tree)) + subtree
+      oneLevelTreesWithLabels.flatMap { case (tree, label) =>
+        derivationsWithProhibitedRoots(prohib + label, tree) } + subtree
     }
-    allSymbols.filter {
-      case CNFEmptyTag => false
-      case _ => true
-    }.map {
-      case label => (label, derivationsWithProhibitedRoots(Set(label), CNFHole(label)))
-    }.toMap
+    allLabels.map(label =>
+        (label, derivationsWithProhibitedRoots(Set(label), CNFHole(label)))
+    ).toMap
   }
 
-  private[this] def unitParses(subtree: CNFAST[A]): Set[CNFAST[A]] = {
-    val derivations = labelToDerivationsWithHole(subtree.label)
-    derivations.flatMap(_.attachAtHole(subtree))
+  private[this] def unitParses(subtree: CNFAST[A]): Set[CNFAST[A]] = subtree.tag match {
+    case ASTEmptyTag => Set.empty[CNFAST[A]] // don't you dare! they's null parses.
+    case ASTNormalTag(x) => {
+      val derivations = labelToDerivationsWithHole(x)
+      derivations.flatMap(_.attachAtHole(subtree))
+    }
   }
 
-  private[this] val nonterminalsToNullParseTrees: Map[S, Set[CNFAST[A]]] = {
-    var symbolToProducers = allSymbols.map(symbol => (symbol, productions.filter {
-      case Unary(_, c) if c == symbol => true
-      case Binary(_, l, r) if l == symbol || r == symbol => true
+  private[this] val tagsToNullParseTrees: Map[Symbol, Set[CNFAST[A]]] = {
+    var tagToProducers = allTags.map(tag => (tag, productions.filter {
+      case Unary(_, c) if c == tag => true
+      case Binary(_, l, r) if l == tag || r == tag => true
       case _ => false
     })).toMap
-    var nullable = 
-      if(allSymbols(CNFEmptyTag)) Set[(Set[S], CNFAST[A])]((Set.empty[S], CNFEmpty))
-      else Set.empty[(Set[S], CNFAST[A])]
+    var nullable =
+      if(allTags(ASTEmptyTag)) Set[(Set[A], CNFAST[A])]((Set.empty[A], CNFEmpty))
+      else Set.empty[(Set[A], CNFAST[A])]
     var todo = nullable
     while(!todo.isEmpty) {
       val b = todo.head
       todo = todo - b
       val (prohib, subtree) = b
-      symbolToProducers(subtree.label).foreach {
+      tagToProducers(subtree.tag).foreach {
         case Unary(a, _) if !prohib(a) => {
           val entry = (prohib + a, CNFUnaryNonterminal(a, subtree))
           nullable = nullable + entry
           todo = todo + entry
         }
         case Binary(a, x, y) if !prohib(a) => {
-          if(x == subtree.label) {
+          if(x == subtree.tag) {
             nullable.foreach {
-              case (proh, rightTree) if !proh(a) && rightTree.label == y => {
+              case (proh, rightTree) if !proh(a) && rightTree.tag == y => {
                 val entry = (prohib ++ proh + a, CNFBinaryNonterminal(a, subtree, rightTree))
                 nullable = nullable + entry
                 todo = todo + entry
@@ -88,9 +90,9 @@ class CNFGrammar[A](
               case _ => ()
             }
           }
-          if(y == subtree.label) {
+          if(y == subtree.tag) {
             nullable.foreach {
-              case (proh, leftTree) if !proh(a) && leftTree.label == x => {
+              case (proh, leftTree) if !proh(a) && leftTree.tag == x => {
                 val entry = (prohib ++ proh + a, CNFBinaryNonterminal(a, leftTree, subtree))
                 nullable = nullable + entry
                 todo = todo + entry
@@ -103,20 +105,20 @@ class CNFGrammar[A](
       }
     }
     val nullParses = nullable.map(_._2)
-    nullParses.groupBy(_.label).withDefaultValue(Set.empty[CNFAST[A]])
+    nullParses.groupBy(_.tag).withDefaultValue(Set.empty[CNFAST[A]])
   }
 
-  private[this] val unitAncestors: Map[S, Set[S]] =
-    labelToDerivationsWithHole.map { case (sym, set) => (sym, set.map(_.label)) }
+  private[this] val unitAncestors: Map[A, Set[Symbol]] =
+    labelToDerivationsWithHole.map { case (sym, set) => (sym -> set.map(_.tag)) }
 
-  private[this] def cykTable(tokens: Seq[String]): (((Int, Int)) => Set[S]) = {
-    def getEntryGen(recurse: (((Int, Int)) => Set[S]))(indices: (Int, Int)): Set[S] = {
+  private[this] def cykTable(tokens: Seq[String]): (((Int, Int)) => Set[Symbol]) = {
+    def getEntryGen(recurse: (((Int, Int)) => Set[Symbol]))(indices: (Int, Int)): Set[Symbol] = {
       val (level, offset) = indices
-      val lexicalOrBinary: Set[S] = {
+      val lexicalOrBinary: Set[A] = {
         if(level == 0) for { // lexical
           cat <- lexicalCategories
           if cat.member(tokens(offset))
-        } yield CNFNormalTag(cat.symbol)
+        } yield cat.symbol
         else for { // binary
           (leftIndices, rightIndices) <-
             (1 to level).map(i => ((i - 1, offset), (level - i, offset + i))).toSet
@@ -128,61 +130,62 @@ class CNFGrammar[A](
       }
       lexicalOrBinary.flatMap(unitAncestors)
     }
-    lazy val getEntry: (((Int, Int)) => Set[S]) = Memoize(getEntryGen(getEntry))
+    lazy val getEntry: (((Int, Int)) => Set[Symbol]) = Memoize(getEntryGen(getEntry))
     getEntry
   }
 
   private[this] def makeExtract(
-      tokens: Seq[String], table: (((Int, Int)) => Set[S])): (((S, Int, Int)) => Set[CNFAST[A]]) = {
+      tokens: Seq[String], table: (((Int, Int)) => Set[Symbol])): (((Symbol, Int, Int)) => Set[CNFAST[A]]) = {
     def extractGen(
-        other: (((S, Int, Int)) => Set[CNFAST[A]]))
-        (input: (S, Int, Int)): Set[CNFAST[A]] = {
+        other: (((Symbol, Int, Int)) => Set[CNFAST[A]]))
+        (input: (Symbol, Int, Int)): Set[CNFAST[A]] = {
       val (root, level, offset) = input
       other(root, level, offset) ++ (for {
         symb <- table(level, offset)
         tree <- other((symb, level, offset))
         augTree <- unitParses(tree)
-        if augTree.label == root
+        if augTree.tag == root
       } yield augTree)
     }
     def extractAuxGen(
-        other: (((S, Int, Int)) => Set[CNFAST[A]]))
-        (input: (S, Int, Int)): Set[CNFAST[A]] = {
+        other: (((Symbol, Int, Int)) => Set[CNFAST[A]]))
+        (input: (Symbol, Int, Int)): Set[CNFAST[A]] = {
       val (root, level, offset) = input
       if(table(level, offset)(root)) {
         if (level == 0) { // lexical
           val tok = tokens(offset)
           (for {
             category <- lexicalCategories
-            if root == CNFNormalTag(category.symbol)
+            if root == ASTNormalTag(category.symbol)
             if category.member(tok)
-          } yield CNFTerminal[A](root, tok)).toSet
+          } yield CNFTerminal[A](category.symbol, tok)).toSet
         }
         else for { // binary
           ((leftLevel, leftOffset), (rightLevel, rightOffset)) <-
             (1 to level).map(i => ((i - 1, offset), (level - i, offset + i))).toSet
           leftSymbol <- table((leftLevel, leftOffset))
           rightSymbol <- table((rightLevel, rightOffset))
-          if productions(Binary(root, leftSymbol, rightSymbol))
+          rootLabel <- root.toOption.toSet
+          if productions(Binary(rootLabel, leftSymbol, rightSymbol))
           leftSubtree <- other((leftSymbol, leftLevel, leftOffset))
           rightSubtree <- other((rightSymbol, rightLevel, rightOffset))
-        } yield CNFBinaryNonterminal(root, leftSubtree, rightSubtree)
+        } yield CNFBinaryNonterminal(rootLabel, leftSubtree, rightSubtree)
       }
       else Set.empty[CNFAST[A]]
     }
-    lazy val (extract: (((S, Int, Int)) => Set[CNFAST[A]]),
-              extractAux: (((S, Int, Int)) => Set[CNFAST[A]])) =
+    lazy val (extract: (((Symbol, Int, Int)) => Set[CNFAST[A]]),
+              extractAux: (((Symbol, Int, Int)) => Set[CNFAST[A]])) =
       (Memoize(extractGen(extractAux)), Memoize(extractAuxGen(extract)))
     extract
   }
 
   override def parseTokens(tokens: Seq[String]): Set[CNFAST[A]] = {
     if(tokens.length == 0) {
-      startSymbols.map(CNFNormalTag(_)).flatMap(nonterminalsToNullParseTrees)
+      startSymbols.map(ASTNormalTag(_)).flatMap(tagsToNullParseTrees)
     } else {
       val table = cykTable(tokens)
       val extract = makeExtract(tokens, table)
-      startSymbols.map(CNFNormalTag(_)).flatMap(sym => extract((sym, tokens.length - 1, 0)))
+      startSymbols.map(ASTNormalTag(_)).flatMap(sym => extract((sym, tokens.length - 1, 0)))
     }
   }
 }
