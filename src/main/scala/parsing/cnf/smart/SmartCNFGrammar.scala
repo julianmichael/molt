@@ -103,7 +103,6 @@ class SmartCNFGrammar[A](
         }
 
         leftNulls.merge(rightNulls).merge(doubleNull)
-        doubleNull
       }
       case _ => SortedStream.empty
     })
