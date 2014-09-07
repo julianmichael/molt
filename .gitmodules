@@ -1,0 +1,3 @@
+[submodule "lib/sorted-streams"]
+	path = lib/sorted-streams
+	url = https://github.com/julianmichael/sorted-streams
