@@ -63,33 +63,47 @@ class SmartCNFGrammar[A](
     nullable
   }
 
-  private[this] lazy val nullableTrees: SortedStream[CNFAST[A]] = 
-    if(allTags(ASTEmptyTag)) unitParses(CNFEmpty())
+  private[this] lazy val nullableTrees: SortedStream[CNFAST[A]] = {
+    if(allTags(ASTEmptyTag)) unitNullParses(CNFEmpty())
     else SortedStream.empty
+  }
 
-  private[this] def unitParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+  private[this] def unitNullParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+    // assumption: subtree is a null parse tree
     val tag = subtree.tag
+    // only pair tree with smaller trees
+    val smallerNullableTrees =
+      if(subtree == CNFEmpty()) SortedStream.empty
+      else nullableTrees.takeWhile(_ != subtree)
+
     val oneLevelTreesList = productions.map (prod => prod match {
       case Unary(label, child) if(child == tag) =>
         SortedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
       case Binary(label, left, right) => {
-        // need to check if right is a nullable symbol, because filtering on a
-        // predicate that will never be satisfied will cause an infinite loop as
-        // the stream doesn't realize that.
+        // need to check that `right` is nullable tag because filtering on a
+        // predicate that will never be satisfied will cause an infinite loop
         val rightNulls = if(left == tag && nullableTags(right)) {
-          nullableTrees.filter(_.tag == right).map(
+          smallerNullableTrees.filter(_.tag == right).map(
             nullTree => CNFBinaryNonterminal(label, subtree, nullTree): CNFAST[A])
         } else {
           SortedStream.empty[CNFAST[A]]
         }
+
         val leftNulls = if(right == tag && nullableTags(left)) {
-          nullableTrees.filter(_.tag == left).map(
+          smallerNullableTrees.filter(_.tag == left).map(
             nullTree => CNFBinaryNonterminal(label, nullTree, subtree): CNFAST[A])
         } else {
           SortedStream.empty[CNFAST[A]]
         }
-        leftNulls.merge(rightNulls)
-        SortedStream.empty
+
+        val doubleNull = if(right == tag && left == tag) {
+          SortedStream.unit(CNFBinaryNonterminal(label, subtree, subtree): CNFAST[A])
+        } else {
+          SortedStream.empty[CNFAST[A]]
+        }
+
+        leftNulls.merge(rightNulls).merge(doubleNull)
+        doubleNull
       }
       case _ => SortedStream.empty
     })
@@ -100,6 +114,43 @@ class SmartCNFGrammar[A](
     SortedStream.SimpleStream {
       Some(subtree, oneLevelTrees.flatMap(unitParses))
     }
+  }
+
+  private[this] def unitNonNullParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+    // assumption: subtree is not a null parse tree
+    val tag = subtree.tag
+    val oneLevelTreesList = productions.map (prod => prod match {
+      case Unary(label, child) if(child == tag) =>
+        SortedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
+      case Binary(label, left, right) => {
+        val rightNulls = if(left == tag && nullableTags(right)) {
+          nullableTrees.filter(_.tag == right).map(
+            nullTree => CNFBinaryNonterminal(label, subtree, nullTree): CNFAST[A])
+        } else {
+          SortedStream.empty[CNFAST[A]]
+        }
+
+        val leftNulls = if(right == tag && nullableTags(left)) {
+          nullableTrees.filter(_.tag == left).map(
+            nullTree => CNFBinaryNonterminal(label, nullTree, subtree): CNFAST[A])
+        } else {
+          SortedStream.empty[CNFAST[A]]
+        }
+
+        leftNulls.merge(rightNulls)
+      }
+      case _ => SortedStream.empty
+    })
+
+    val oneLevelTrees = oneLevelTreesList.foldLeft(SortedStream.empty)(_ merge _)
+    SortedStream.SimpleStream {
+      Some(subtree, oneLevelTrees.flatMap(unitParses))
+    }
+  }
+
+  def unitParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+    if(subtree.isNullParse) unitNullParses(subtree)
+    else unitNonNullParses(subtree)
   }
 
   def parseTokens(tokens: Seq[String]): SortedStream[CNFAST[A]] = {

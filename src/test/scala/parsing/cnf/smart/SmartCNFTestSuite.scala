@@ -17,6 +17,7 @@ class SmartCNFTestSuite extends FunSuite {
     def member(str: String): Boolean = true
   })
   val productions = Set[CNFProduction[String]](
+    Unary("A", ASTEmptyTag),
     Unary("A", ASTNormalTag("A")),
     Binary("A", ASTNormalTag("A"), ASTNormalTag("A")))
   val grammar = new SmartCNFGrammar[String](
@@ -28,7 +29,7 @@ class SmartCNFTestSuite extends FunSuite {
   def testSentence(tokens: List[String], good: Boolean = true) = {
     println(tokens.mkString(" "))
     val trees = grammar.parseTokens(tokens)
-    trees.take(10).toList.foreach(x => println(x.prettyString))
+    trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
   }
 
   test(s"word") {

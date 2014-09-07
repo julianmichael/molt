@@ -35,6 +35,14 @@ sealed abstract class CNFAST[+A] {
     case CNFEmpty() => "<e>"
   }
 
+  def isNullParse: Boolean = this match {
+    case CNFBinaryNonterminal(_, left, right) => left.isNullParse && right.isNullParse
+    case CNFUnaryNonterminal(_, child) => child.isNullParse
+    case CNFHole(_) => false
+    case CNFTerminal(_, _) => false
+    case CNFEmpty() => true
+  }
+
   val tag: ASTTag[A] = this match {
     case CNFBinaryNonterminal(label, _, _) => ASTNormalTag(label)
     case CNFUnaryNonterminal(label, _) => ASTNormalTag(label)
