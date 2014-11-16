@@ -27,7 +27,7 @@ package parsing.lfg
  * union-find data structure from (Conchon and Filliatre, 2007).
  */
 
-// for union-find data structure and StateT MonadPlus instance
+// for union-find data structure
 import util._
 // for monadic goodness
 import scalaz._
