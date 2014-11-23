@@ -1,9 +1,9 @@
 package molt.tokenize
 
 // We find all of the terminal symbols and make sure we split on
-// them, then assume everything in between is contiguous. As in
-// the definition of propositional logic, we are restricting atoms
-// from containing any of our canonical terminal symbols.
+// them, then assume everything in between is contiguous.
+// We are restricting atoms from containing any of our terminal
+// symbols.
 class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
   private def getOverlaps(toks: List[String]): List[(String, String)] = toks match {
     case Nil => Nil
@@ -27,7 +27,7 @@ class BasicTokenizer(tokens: Set[String]) extends Tokenizer {
 
   // tokenization as described above
   override def tokenizations(s: String): Set[Seq[String]] = {
-    // split on spaces. this is a reversible design decision.
+    // split on spaces. this is a reversible decision.
     val unTokenizedStringVector = s.split("\\s+").toList
 
     // to turn a single string into a list with the specified terminal split out
