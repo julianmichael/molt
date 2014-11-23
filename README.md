@@ -20,6 +20,7 @@ yet exist. These are the theoretical constructs currently implemented:
 * Lexical Functional Grammar. Completeness and coherence are implemented,
   as well as inside-out function application, but the following features
   remain to be done:
+  * Extended coherence
   * Functional uncertainty
   * Off-path constraints
   * f-precedence and binding
