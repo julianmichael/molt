@@ -1,4 +1,4 @@
-name := "parsing"
+name := "molt"
 
 version := "0.1"
 

@@ -13,3 +13,6 @@ To Do List
  * An example system for producing symbolic objects from F-Structures.
 
  * Thread failure reporting, somehow, through the parsing calculations.
+
+ * Correctly implement equality of f-structures (construct a coinductive proof
+   of an equivalence of pointed graphs)
