@@ -6,11 +6,11 @@ case class FStructure(
 
   // TODO: DO THIS BETTER. THIS WILL INFINITE LOOP FOR RECURSIVE STRUCTURES.
   override def equals(that: Any): Boolean = {
-    import LFGParsables.FStructureParser.makeString
+    import molt.syntax.lfg.parsable.LFGParsables.FStructureParser.makeString
     that.isInstanceOf[FStructure] && makeString(this) == makeString(that.asInstanceOf[FStructure])
   }
   override def hashCode = {
-    import LFGParsables.FStructureParser.makeString
+    import molt.syntax.lfg.parsable.LFGParsables.FStructureParser.makeString
     makeString(this).hashCode
   }
 

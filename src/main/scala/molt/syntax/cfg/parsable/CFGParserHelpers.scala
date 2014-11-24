@@ -1,4 +1,6 @@
-package molt.syntax.cfg
+package molt.syntax.cfg.parsable
+
+import molt.syntax.cfg.AST
 
 /*****
  * Parser Helpers are convenience classes to be used when making parsers. They

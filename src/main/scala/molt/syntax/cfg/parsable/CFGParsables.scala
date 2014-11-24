@@ -1,6 +1,9 @@
-package molt.syntax.cfg
+package molt.syntax.cfg.parsable
 
-import molt.syntax.cfg.CFGParserHelpers._
+import molt.syntax.cfg.CFGProduction
+import molt.syntax.cfg.ASTNormalTag
+import molt.syntax.cfg.AST
+import molt.syntax.cfg.parsable.CFGParserHelpers._
 
 object CFGParsables {
 

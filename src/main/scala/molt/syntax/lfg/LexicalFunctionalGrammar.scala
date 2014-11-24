@@ -7,18 +7,10 @@ class LexicalFunctionalGrammar[A](
   val productions: Set[LFGProduction[A]],
   val lexicalCategories: Set[LFGLexicalCategory[A]],
   val startSymbols: Set[A],
+  val requireCoherence: Boolean = true,
+  val requireCompleteness: Boolean = true,
   val wildcards: Map[Feature, List[Feature]] = Map.empty[Feature, List[Feature]],
-  val argumentFunctions: Set[Feature] = Set.empty[Feature]) extends Grammar[FStructure] {
-
-  private[this] val solve = new LFGSolver(wildcards)
-
-  override def parseTokens(tokens: Seq[String]): Set[FStructure] = for {
-    ast <- cfGrammar.parseTokens(tokens)
-    annotatedAST <- annotations(ast)
-    (fdesc, rootID) = annotatedAST.fDescription
-    fStruct <- solve(fdesc, rootID)
-    if fStruct.isComplete && fStruct.isCoherent(argumentFunctions)
-  } yield fStruct
+  val argumentFunctions: Set[Feature] = Set.empty[Feature]) {
 
   private[this] val cfgProductions = productions.map(_.cfgProduction)
   private[this] val cfgLexicalCategories: Set[LexicalCategory[A]] = lexicalCategories.collect {

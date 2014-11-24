@@ -1,21 +1,26 @@
-package molt.syntax.cfg
+package molt.syntax.cfg.parsable
 
 import molt.syntax._
 import molt.tokenize._
+import molt.syntax.cfg._
 
 /*
  * CFGParsable contains most of the functionality and framework for any object
  * that we want to be able to parse from a string, so I make most of the notes
  * here.
  */
-sealed trait CFGParsable[+A] extends Parsable[A] {
+sealed trait CFGParsable[+A] {
   // ----- Must implement -----
 
   // This mapping gives us all of the productions for this particular
   // nonterminal, and paired with them are methods to construct one
   // of this nonterminal-associated `A` from its constituent parts.
   val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[A])]
-
+  
+  val tag: ASTTag[CFGParsable[_]]
+  
+  def fromAST(ast: AST[CFGParsable[_]]): Option[A]
+  
   // ----- May be overridden -----
 
   // These are the strings that will be regarded as individual words (beyond the
@@ -26,10 +31,7 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
   // TODO come up with a better solution than JUST individual token symbols
   val tokens: Set[String] = Set.empty[String]
 
-  val tag: ASTTag[CFGParsable[_]]
-
   // ----- Cannot be overridden -----
-  final override type Intermediate = AST[CFGParsable[_]]
 
   // List of all of the Parsables that are components of this one (used in productions)
   final lazy val children: Set[CFGParsable[_]] = {
@@ -67,6 +69,8 @@ sealed trait CFGParsable[+A] extends Parsable[A] {
   // the grammar just requires the productions, lexical categories, and start symbol
   final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] =
     new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Set(this))
+   
+  final lazy val parser: CFGParser[CFGParsable[_]] = new CFGParser(grammar)
 }
 
 /*

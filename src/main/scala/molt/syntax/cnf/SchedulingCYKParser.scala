@@ -1,28 +1,24 @@
-package molt.syntax.cnf.smart
+package molt.syntax.cnf
 
-import molt.syntax.LexicalCategory
-import molt.syntax.Grammar
 import molt.syntax.cfg.ASTTag
 import molt.syntax.cfg.ASTNormalTag
 import molt.syntax.cfg.ASTEmptyTag
 import molt.util.Memoize
-
 import molt.syntax.cnf._
-
 import sortstreams._
-// Contains everything we need in order to parse, and also parses!
-// We let the stuff that appears in the productions inform us what
-// symbols are terminal and non-terminal.
+import molt.syntax.cfg.CNFConversionTag
+import CNFConversionTag._
 
-// The type parameter A is the type of symbol used in productions and ASTs. It
-// will typically be either String or Parsable[_].
-class SmartCNFGrammar[A](
-  val smartParams: SmartParseParameters[CNFAST[A]],
-  val productions: Set[CNFProduction[A]],
-  val lexicalCategories: Set[LexicalCategory[A]],
-  val startSymbols: Set[A] = Set.empty[A]) {
 
-  import smartParams._
+class SchedulingCYKParser[A](
+  val cnfGrammar: CNFGrammar[A],
+  val schedulingParams: SmartParseParameters[CNFAST[A]]) {
+    
+  val productions = cnfGrammar.productions
+  val lexicalCategories = cnfGrammar.lexicalCategories
+  val startSymbols = cnfGrammar.startSymbols
+
+  import schedulingParams._
 
   private[this] type Tag = ASTTag[A]
 
@@ -147,7 +143,7 @@ class SmartCNFGrammar[A](
     }
   }
 
-  def unitParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+  private[this] def unitParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
     if(subtree.isNullParse) unitNullParses(subtree)
     else unitNonNullParses(subtree)
   }
@@ -206,3 +202,48 @@ class SmartCNFGrammar[A](
     })
   }
 }
+
+
+trait SmartParseParameters[A] {
+  type SyntaxTree = A
+  implicit val ordering: Ordering[SyntaxTree]
+}
+
+class BasicSmartParse[A] extends SmartParseParameters[CNFAST[A]] {
+  def score(tree: CNFAST[A]): Int = tree match {
+    case CNFEmpty() => 1
+    case CNFTerminal(_, _) => 1
+    case CNFHole(_) => 1
+    case CNFUnaryNonterminal(_, child) => 1 + score(child)
+    case CNFBinaryNonterminal(_, left, right) => 1 + score(left) + score(right)
+  }
+  implicit val ordering: Ordering[SyntaxTree] = Ordering.by[SyntaxTree, Int](score _)
+}
+
+
+/*
+trait SmartParseParameters[A] {
+  type SyntaxTree = A
+  type ScoredRepresentation
+  type Score
+  implicit val scoreOrdering: Ordering[Score]
+  def decorate(tree: SyntaxTree): ScoredRepresentation
+  def score(rep: IntermediateRepresentation): Score
+}
+
+trait BasicSmartParse[A] extends SmartParseParameters[CNFAST[CNFConversionTag[A]]] {
+  type IntermediateRepresentation = (SyntaxTree, Int)
+  type Score = Int
+  implicit val scoreOrdering = implicitly[Ordering[Score]]
+  def decorate(tree: SyntaxTree) = (tree, count(tree))
+  def score(rep: IntermediateRepresentation): Int = rep._2
+
+  def count(tree: CNFAST[A]): Int = tree match {
+    case CNFEmpty() => 1
+    case CNFTerminal(_, _) => 1
+    case CNFHole(_) => 1
+    case CNFUnaryNonterminal(_, child) => 1 + score(child)
+    case CNFBinaryNonterminal(_, left, right) => 1 + score(left) + score(right)
+  }
+}
+*/

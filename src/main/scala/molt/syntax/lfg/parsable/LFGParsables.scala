@@ -1,9 +1,16 @@
-package molt.syntax.lfg
+package molt.syntax.lfg.parsable
 import molt.syntax._
 import molt.syntax.cfg._
-import molt.syntax.cfg.GenericParsables._
-import molt.syntax.cfg.CFGParserHelpers._
-import molt.syntax.cfg.CFGParsables._
+import molt.syntax.cfg.parsable._
+import molt.syntax.cfg.parsable.GenericParsables._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.lfg._
+import scalaz.Scalaz.get
+import scalaz.Scalaz.put
+import scalaz.State
+import scalaz.State
+import scalaz.idInstance
 
 object LFGParsables {
 

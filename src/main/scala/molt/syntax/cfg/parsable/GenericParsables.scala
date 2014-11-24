@@ -1,6 +1,7 @@
-package molt.syntax.cfg
+package molt.syntax.cfg.parsable
 
 import CFGParserHelpers._
+import molt.syntax.cfg.AST
 
 object GenericParsables {
 
