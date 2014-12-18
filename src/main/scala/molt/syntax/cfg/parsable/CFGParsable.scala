@@ -69,8 +69,10 @@ sealed trait CFGParsable[+A] {
   // the grammar just requires the productions, lexical categories, and start symbol
   final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] =
     new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Set(this))
-   
-  final lazy val parser: CFGParser[CFGParsable[_]] = new CFGParser(grammar)
+
+  // CAN OVERRIDE! For ~*~smart parsing~*~
+
+  lazy val parser: CFGParser[CFGParsable[_]] = new CFGParser(grammar)
 }
 
 /*

@@ -20,3 +20,22 @@ class SchedulingCFGParser[A](
     validParse <- convertAST(cnfParse)
   } yield validParse
 }
+
+trait CFGSmartParse[A] extends SmartParseParameters[CNFAST[CNFConversionTag[A]]] {
+  def score(tree: CNFAST[CNFConversionTag[A]]): Int = convertAST(tree) match {
+    case None => (tree: @unchecked) match {
+      case CNFBinaryNonterminal(_, left, right) => score(left) + score(right)
+    }
+    case Some(ast) => score(ast)
+  }
+
+  def score(tree: AST[A]): Int
+
+  implicit val ordering: Ordering[SyntaxTree] = Ordering.by[SyntaxTree, Int](score _)
+}
+
+trait PenaltyBasedCFGSmartParse[A] extends CFGSmartParse[A] {
+  def score(tree: AST[A]): Int = penalties.flatMap(_.lift(tree)).sum
+
+  val penalties: List[PartialFunction[AST[A], Int]]
+}

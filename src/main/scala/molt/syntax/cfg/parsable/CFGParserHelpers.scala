@@ -36,6 +36,7 @@ object CFGParserHelpers {
 
   case object Alphabetical extends RegexLexicalCategory("[a-zA-Z]+")
   case object Alphanumeric extends RegexLexicalCategory("[a-zA-Z0-9]+")
+  object Numeric extends RegexLexicalCategory("[0-9]+")
 
   case class Plus[A](parsable: CFGParsable[A]) extends ComplexCFGParsable[List[A]] {
     final val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[List[A]])] = Map(
@@ -87,4 +88,24 @@ object CFGParserHelpers {
       List(CFGEmptyCategory) -> (c => Some(None))
     )
   }
+
+  case class Parenthesize[A](inner: CFGParsable[A]) extends ComplexCFGParsable[A] {
+    final override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[A])] = Map(
+      List(Terminal("("), inner, Terminal(")")) -> (c => for {
+        x <- inner.fromAST(c(1))
+      } yield x)
+    )
+  }
+
+  class OptionallyParenthesize[A](inner: CFGParsable[A]) extends ComplexCFGParsable[A] {
+    final override val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[A])] = Map(
+      List(Optional(Terminal("(")), inner, Optional(Terminal(")"))) -> (c => for {
+        leftBrace <- Optional(Terminal("(")).fromAST(c(0))
+        rightBrace <- Optional(Terminal(")")).fromAST(c(2))
+        if leftBrace.isEmpty == rightBrace.isEmpty
+        x <- inner.fromAST(c(1))
+      } yield x)
+    )
+  }
+
 }
