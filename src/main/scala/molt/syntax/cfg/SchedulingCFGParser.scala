@@ -1,4 +1,4 @@
-package molt.syntax.cfg.smart
+package molt.syntax.cfg
 
 import molt.syntax.LexicalCategory
 import molt.syntax.cfg._
@@ -17,6 +17,11 @@ class SchedulingCFGParser[A](
 
   def parseTokens(tokens: Seq[String]) = for {
     cnfParse <- cnfParser.parseTokens(tokens).toStream
+    validParse <- convertAST(cnfParse)
+  } yield validParse
+
+  def parseTokensFirst(tokens: Seq[String]) = for {
+    cnfParse <- cnfParser.parseTokens(tokens).takeFirst.toStream
     validParse <- convertAST(cnfParse)
   } yield validParse
 }

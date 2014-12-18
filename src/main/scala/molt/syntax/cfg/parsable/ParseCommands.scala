@@ -1,17 +1,24 @@
 package molt.syntax.cfg.parsable
 
+import sortstreams._
+
 /* THESE FUNCTIONS ARE THE PREFERRED WAY TO PARSE!
   * The other ways are dispreferred!
   * Kind of, not really. Do your own thing. Whatever.
   * */
 object ParseCommands {
-  def parse[A](str: String)(implicit parsable: CFGParsable[A]): Set[A] = for {
-    tokens <- parsable.tokenizer.tokenizations(str)
+  def parse[A](str: String)(implicit parsable: CFGParsable[A]): Stream[A] = for {
+    tokens <- parsable.tokenizer.tokenizations(str).toStream
     ast <- parsable.parser.parseTokens(tokens)
     symbolic <- parsable.fromAST(ast)
   } yield symbolic
+  def parseFirst[A](str: String)(implicit parsable: CFGParsable[A]): Stream[A] = for {
+    tokens <- parsable.tokenizer.tokenizations(str).toStream
+    ast <- parsable.parser.parseTokensFirst(tokens)
+    symbolic <- parsable.fromAST(ast)
+  } yield symbolic
   def parseUnique[A](str: String)(implicit parsable: CFGParsable[A]): Option[A] = {
-    val results = parse(str)
+    val results = parseFirst(str)
     if(results.size == 1) Some(results.head)
     else None
   }

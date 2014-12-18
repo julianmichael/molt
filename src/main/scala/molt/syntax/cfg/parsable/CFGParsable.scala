@@ -3,6 +3,9 @@ package molt.syntax.cfg.parsable
 import molt.syntax._
 import molt.tokenize._
 import molt.syntax.cfg._
+import molt.syntax.cnf.SmartParseParameters
+import molt.syntax.cnf.BasicSmartParse
+import molt.syntax.cnf.CNFAST
 
 /*
  * CFGParsable contains most of the functionality and framework for any object
@@ -30,6 +33,9 @@ sealed trait CFGParsable[+A] {
   // multiple possible tokenizations.
   // TODO come up with a better solution than JUST individual token symbols
   val tokens: Set[String] = Set.empty[String]
+
+  val schedulingParams: SmartParseParameters[CNFAST[CNFConversionTag[CFGParsable[_]]]] =
+    new BasicSmartParse[CNFConversionTag[CFGParsable[_]]]
 
   // ----- Cannot be overridden -----
 
@@ -70,9 +76,8 @@ sealed trait CFGParsable[+A] {
   final lazy val grammar: ContextFreeGrammar[CFGParsable[_]] =
     new ContextFreeGrammar[CFGParsable[_]](productions, lexicalCategories, Set(this))
 
-  // CAN OVERRIDE! For ~*~smart parsing~*~
-
-  lazy val parser: CFGParser[CFGParsable[_]] = new CFGParser(grammar)
+  final lazy val parser: SchedulingCFGParser[CFGParsable[_]] =
+    new SchedulingCFGParser(grammar, schedulingParams)
 }
 
 /*
