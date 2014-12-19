@@ -27,6 +27,10 @@ object CFGParserHelpers {
     override val tokens = Set(token)
   }
 
+  case class SetCategory(override val tokens: Set[String]) extends CFGParsableLexicalCategory {
+    override def member(s: String) = tokens(s)
+  }
+
   class RegexLexicalCategory(regex: String) extends CFGParsableLexicalCategory {
     override def member(s: String) = s.matches(regex)
   }

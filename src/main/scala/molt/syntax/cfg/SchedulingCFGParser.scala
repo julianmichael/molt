@@ -27,24 +27,25 @@ class SchedulingCFGParser[A](
 }
 
 trait CFGSmartParse[A] extends SmartParseParameters[CNFAST[CNFConversionTag[A]]] {
-  def score(tree: CNFAST[CNFConversionTag[A]]): Int = convertAST(tree) match {
+  def score(tree: CNFAST[CNFConversionTag[A]]): Double = convertAST(tree) match {
     case None => (tree: @unchecked) match {
       case CNFBinaryNonterminal(_, left, right) => math.max(score(left), score(right))
+      case CNFUnaryNonterminal(_, child) => score(child)
     }
     case Some(ast) => score(ast)
   }
 
-  def score(tree: AST[A]): Int
+  def score(tree: AST[A]): Double
 
-  implicit val ordering: Ordering[SyntaxTree] = Ordering.by[SyntaxTree, Int](score _)
+  implicit val ordering: Ordering[SyntaxTree] = Ordering.by[SyntaxTree, Double](score _)
 }
 
 trait PenaltyBasedCFGSmartParse[A] extends CFGSmartParse[A] {
-  def score(tree: AST[A]): Int =
-    penalties.flatMap(_.lift(tree)).sum + (tree match {
+  def score(tree: AST[A]): Double =
+    penalties.map(_(tree)).sum + (tree match {
       case ASTNonterminal(_, children) => children.map(score _).sum
       case _ => 0
     })
 
-  val penalties: List[PartialFunction[AST[A], Int]]
+  val penalties: List[(AST[A] => Double)]
 }
