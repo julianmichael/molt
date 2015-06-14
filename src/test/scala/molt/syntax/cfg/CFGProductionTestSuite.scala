@@ -1,10 +1,13 @@
 package molt.syntax.cfg
 
 import molt.syntax._
-import molt.syntax.ParseCommands._
-import molt.syntax.cfg.CFGParsables._
-import molt.syntax.cfg.CFGParserHelpers._
 import molt.syntax.cnf._
+
+import molt.syntax.cfg.parsable.ParseCommands._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.cfg.parsable.GenericParsables._
+import molt.syntax.cfg.parsable._
 
 class CFGProductionTestSuite extends ParsableTestSuite[CFGProduction[String]] {
   override val parameters = CFGProductionTestParameters

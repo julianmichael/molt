@@ -1,12 +1,16 @@
 package molt.syntax.lfg
 
 import molt.syntax._
-import molt.syntax.ParseCommands._
 import molt.syntax.cfg._
-import molt.syntax.cfg.GenericParsables._
-import molt.syntax.cfg.CFGParserHelpers._
 import molt.syntax.cnf._
-import molt.syntax.lfg.LFGParsables._
+
+import molt.syntax.cfg.parsable.ParseCommands._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.cfg.parsable.GenericParsables._
+import molt.syntax.cfg.parsable._
+
+import molt.syntax.lfg.parsable.LFGParsables._
 
 class SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
   override val parameters = SemanticFormTestParameters

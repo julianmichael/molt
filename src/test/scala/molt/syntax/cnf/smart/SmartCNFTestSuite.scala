@@ -2,10 +2,12 @@ package molt.syntax.cnf.smart
 
 import org.scalatest.FunSuite
 import molt.syntax._
-import molt.syntax.ParseCommands._
-import molt.syntax.cfg.GenericParsables._
-import molt.syntax.cfg.CFGParserHelpers._
-import molt.syntax.cfg.CFGParsables._
+
+import molt.syntax.cfg.parsable.ParseCommands._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.cfg.parsable.GenericParsables._
+import molt.syntax.cfg.parsable._
 import molt.syntax.cfg._
 import molt.syntax.cnf._
 
@@ -15,20 +17,22 @@ class SmartCNFTestSuite extends FunSuite {
     val symbol = "A"
     def member(str: String): Boolean = true
   })
-  val productions = Set[CNFProduction[String]](
+  val prods = Set[CNFProduction[String]](
     Unary("A", ASTEmptyTag),
     Unary("A", ASTNormalTag("A")),
     Binary("A", ASTNormalTag("A"), ASTNormalTag("A")))
-  val grammar = new SmartCNFGrammar[String](
-    new BasicSmartParse[String],
-    productions = productions,
+  val grammar = new CNFGrammar[String](
+    productions = prods,
     lexicalCategories = lexCats,
     startSymbols = Set("A"))
+  val parser = new SchedulingCYKParser[String](
+    grammar,
+    new BasicSmartParse[String])
 
   def testSentence(tokens: List[String], good: Boolean = true) = {
-    println(tokens.mkString(" "))
-    val trees = grammar.parseTokens(tokens)
-    trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
+    // println(tokens.mkString(" "))
+    val trees = parser.parseTokens(tokens)
+    // trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
   }
 
   test(s"word") {

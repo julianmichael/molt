@@ -3,10 +3,15 @@ package molt.syntax.lfg
 import org.scalatest.FunSuite
 
 import molt.syntax._
-import molt.syntax.ParseCommands._
-import molt.syntax.cfg.GenericParsables._
-import molt.syntax.cfg.CFGParserHelpers._
-import molt.syntax.lfg.LFGParsables._
+
+import molt.syntax.cfg.parsable.ParseCommands._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.cfg.parsable.GenericParsables._
+import molt.syntax.cfg.parsable._
+
+import molt.syntax.lfg.parsable.LFGParsables._
+
 import molt.syntax.cnf._
 
 class LFGTestSuite extends FunSuite {
@@ -195,9 +200,11 @@ class LFGTestSuite extends FunSuite {
       "AF" -> List("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP")),
     argumentFunctions = Set("SUBJ", "OBJ", "OBJR", "OBL", "COMP", "XCOMP"))
 
+  val parser = new LFGParser(grammar)
+
   def testSentence(tokens: List[String], good: Boolean = true) = {
     println(tokens.mkString(" "))
-    val fstructs = grammar.parseTokens(tokens)
+    val fstructs = parser.parseTokens(tokens)
     fstructs.foreach(fs => println(FStructureParser.makeString(fs)))
     assert(good != fstructs.isEmpty)
   }

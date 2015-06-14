@@ -2,7 +2,8 @@ package molt.syntax
 
 import molt.syntax.cfg._
 import molt.syntax.cnf._
-import molt.syntax.cfg.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable._
 
 class PlusTestParameters[A](parsable: CFGParsable[A]) extends ParsableTestParameters[List[A]] {
   override val children = Some(Set(
@@ -21,6 +22,6 @@ class PlusTestParameters[A](parsable: CFGParsable[A]) extends ParsableTestParame
   override val cnfProductions = Some(Set[CNFProduction[CNFConversionTag[CFGParsable[_]]]](
     Binary(Single(Plus(parsable)), ASTNormalTag(Single(parsable)), ASTNormalTag(Single(Plus(parsable)))),
     Unary(Single(Plus(parsable)), ASTNormalTag(Single(parsable)))) ++
-    parsable.grammar.cnfProductions)
+    parsable.grammar.toCNF.productions)
   override val testParses = Nil
 }

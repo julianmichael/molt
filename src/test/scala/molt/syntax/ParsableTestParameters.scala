@@ -2,9 +2,10 @@ package molt.syntax
 
 import org.scalatest.FunSuite
 
-import molt.syntax.ParseCommands._
-import molt.syntax.cfg.CFGParserHelpers._
-import molt.syntax.cfg.CFGParsables._
+import molt.syntax.cfg.parsable.ParseCommands._
+import molt.syntax.cfg.parsable.CFGParserHelpers._
+import molt.syntax.cfg.parsable.CFGParsables._
+import molt.syntax.cfg.parsable._
 import molt.syntax.cfg._
 import molt.syntax.cnf._
 
@@ -37,7 +38,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
   )}
 
   test(s"CNF productions") { parameters.cnfProductions foreach (cnfProductions =>
-    assert(parsable.grammar.cnfProductions === cnfProductions)
+    assert(parsable.grammar.toCNF.productions === cnfProductions)
   )}
 
   test(s"nonterminals") { parameters.nonterminals foreach (nonterminals =>
@@ -80,7 +81,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           tok <- tokens
           ast <- astree
         } yield {
-          val asts = parsable.grammar.parseTokens(tok)
+          val asts = parsable.parser.parseTokens(tok)
           assert(!asts.isEmpty)
           assert(asts.head === ast)
         }
@@ -89,7 +90,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           str <- string
           ast <- astree
         } yield assert(
-          parsable.grammar.parseTokens(parsable.tokenizer.tokenizations(str).head).head === ast)
+          parsable.parser.parseTokens(parsable.tokenizer.tokenizations(str).head).head === ast)
 
         for {
           ast <- astree
@@ -100,7 +101,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
           tok <- tokens
           sym <- symbol
         } yield {
-          val asts = parsable.grammar.parseTokens(tok)
+          val asts = parsable.parser.parseTokens(tok)
           assert(!asts.isEmpty)
           assert(parsable.fromAST(asts.head) === Some(sym))
         }
@@ -108,7 +109,7 @@ abstract class ParsableTestSuite[A] extends FunSuite {
         for {
           str <- string
           sym <- symbol
-        } yield assert(parse(str)(parsable) === Set(sym))
+        } yield assert(parse(str)(parsable).toSet === Set(sym))
 
       }
     }
