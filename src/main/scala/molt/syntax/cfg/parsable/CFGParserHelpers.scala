@@ -9,8 +9,7 @@ import molt.syntax.cfg.AST
  * will be multiple different ways of parsing strings into a data type (i.e.,
  * again, List[A] below). They can implement the functionality of the normal
  * regex kind of stuff you see in typical grammar notation (like the +, *,
- * optionality, etc: TODO get the parser to work with the empty string so * and
- * opt can work) but they are more powerful: in general, they are simply
+ * optionality, etc, but they are more powerful: in general, they are simply
  * abstractions over parsing structures; i.e., we don't just have a list of A
  * concatenated together (in the case of Plus (+)), but also a DELIMITED list is
  * possible to easily create.

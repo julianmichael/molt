@@ -30,9 +30,9 @@ class SmartCNFTestSuite extends FunSuite {
     new BasicSmartParse[String])
 
   def testSentence(tokens: List[String], good: Boolean = true) = {
-    // println(tokens.mkString(" "))
+    println(tokens.mkString(" "))
     val trees = parser.parseTokens(tokens)
-    // trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
+    trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
   }
 
   test(s"word") {
