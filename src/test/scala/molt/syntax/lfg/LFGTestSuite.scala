@@ -1,6 +1,6 @@
 package molt.syntax.lfg
 
-import org.scalatest.FunSuite
+import utest._
 
 import molt.syntax._
 
@@ -14,82 +14,79 @@ import molt.syntax.lfg.parsable.LFGParsables._
 
 import molt.syntax.cnf._
 
-class LFGTestSuite extends FunSuite {
+object LFGTestSuite extends TestSuite {
+
+  def lexCat(symbol: String, lexicalItems: List[String]): LFGLexicalCategory[String] =
+    BasicLFGLexicalCategory(symbol, lexicalItems.map(parseForced[LexicalEntry]).toSet)
+
   // a s{i,a}mple grammar
   val partsOfSpeech = Set(
-    parseForced[LFGLexicalCategory[String]]("""
-        N:      man:        up PRED = 'man'               ,
-
-                entity:     up PRED = 'entity'            ,
-                            up NUM = SG                   ,
-                            up PERS = THD"""),
-    parseForced[LFGLexicalCategory[String]]("""
-        I:      did:        up TENSE = PAST               ,
-                            up MOOD = DECLARATIVE         ,
-                            up VFORM =c BASE              ,
-
-                to:         ! up TENSE                    ,
-
-                kissed:     up PRED  = 'kiss<SUBJ,OBJ>'   ,
-                            up TENSE = PAST               """),
-    parseForced[LFGLexicalCategory[String]]("""
-        V:      seem:       up PRED = 'seem<XCOMP>SUBJ'   ,
-                            up SUBJ = up XCOMP SUBJ       ,
-                            ((!(up SUBJ NUM = SG &
-                                up SUBJ PERS = THD)) &
-                                up TENSE = PRESENT) |
-                              up VFORM = BASE,
-
-                try:        up PRED = 'try<SUBJ,XCOMP>'   ,
-                            up SUBJ = up XCOMP SUBJ       ,
-                            ((!(up SUBJ NUM = SG &
-                                up SUBJ PERS = THD)) &
-                                up TENSE = PRESENT) |
-                              up VFORM = BASE,
-
-                hide:       up PRED = 'hide<SUBJ,OBJ>'    ,
-                            ((!(up SUBJ NUM = SG &
-                                up SUBJ PERS = THD)) &
-                                up TENSE = PRESENT) |
-                              up VFORM = BASE
-                                                          """),
-    parseForced[LFGLexicalCategory[String]]("""
-        C:      did:        up TENSE = PAST               ,
-                            up MOOD = INTERROGATIVE       ,
-                            up VFORM =c BASE
-                                                          """),
-    parseForced[LFGLexicalCategory[String]]("""
-        DP:     I:          up PRED = 'pro'               ,
-                            up NUM  = SG                  ,
-                            up PERS = FST                 ,
-                            up DEF  = yes                 ,
-
-                John:       up PRED = 'John'              ,
-                            up NUM  = SG                  ,
-                            up DEF  = yes                 ,
-
-                Gary:       up PRED = 'Gary'              ,
-                            up NUM  = SG                  ,
-                            up DEF  = yes                 """),
-    parseForced[LFGLexicalCategory[String]]("""
-        A:      strange:    up PRED = 'strange'           ,
-
-                green:      up PRED = 'green'
-                                                          """),
-    parseForced[LFGLexicalCategory[String]]("""
-        Adv:    quickly:    up PRED = 'quickly'
-                                                         """),
-    parseForced[LFGLexicalCategory[String]]("""
-        D:      the:        up DEF = yes                  ,
-
-                 a:         up DEF = no                  ,
-                            up NUM = SG                  ,
-
-                what:       up PRED = 'pro'              ,
-                            up PRONTYPE = WH             ,
-                            (FOC up) MOOD =c INTERROGATIVE
-                """))
-
+    lexCat(
+      "N", List(
+        """man:       up PRED = 'man'""",
+        """entity:    up PRED = 'entity'            ,
+                      up NUM = SG                   ,
+                      up PERS = THD""")),
+    lexCat(
+      "I", List(
+        """did:       up TENSE = PAST               ,
+                      up MOOD = DECLARATIVE         ,
+                      up VFORM =c BASE              """,
+        """to:        ! up TENSE                    """,
+        """kissed:    up PRED  = 'kiss<SUBJ,OBJ>'   ,
+                      up TENSE = PAST               """
+      )),
+    lexCat(
+      "V", List(
+        """seem:      up PRED = 'seem<XCOMP>SUBJ'   ,
+                      up SUBJ = up XCOMP SUBJ       ,
+                      ((!(up SUBJ NUM = SG &
+                          up SUBJ PERS = THD)) &
+                          up TENSE = PRESENT) |
+                        up VFORM = BASE""",
+        """try:       up PRED = 'try<SUBJ,XCOMP>'   ,
+                      up SUBJ = up XCOMP SUBJ       ,
+                      ((!(up SUBJ NUM = SG &
+                          up SUBJ PERS = THD)) &
+                          up TENSE = PRESENT) |
+                        up VFORM = BASE""",
+        """hide:      up PRED = 'hide<SUBJ,OBJ>'    ,
+                      ((!(up SUBJ NUM = SG &
+                          up SUBJ PERS = THD)) &
+                          up TENSE = PRESENT) |
+                        up VFORM = BASE""")),
+    lexCat(
+      "C", List(
+        """did:       up TENSE = PAST               ,
+                      up MOOD = INTERROGATIVE       ,
+                      up VFORM =c BASE""")),
+    lexCat(
+      "DP", List(
+        """I:         up PRED = 'pro'               ,
+                      up NUM  = SG                  ,
+                      up PERS = FST                 ,
+                      up DEF  = yes                 """,
+        """John:      up PRED = 'John'              ,
+                      up NUM  = SG                  ,
+                      up DEF  = yes                 """,
+        """Gary:      up PRED = 'Gary'              ,
+                      up NUM  = SG                  ,
+                      up DEF  = yes                 """)),
+    lexCat(
+      "A", List(
+        """strange:    up PRED = 'strange'          """,
+        """green:      up PRED = 'green'            """)),
+    lexCat(
+      "Adv", List(
+        """ quickly:   up PRED = 'quickly'          """)),
+    lexCat(
+      "D", List(
+        """the:       up DEF = yes                 """,
+        """a:         up DEF = no                  ,
+                      up NUM = SG                  """,
+        """what:      up PRED = 'pro'              ,
+                      up PRONTYPE = WH             ,
+                      (FOC up) MOOD =c INTERROGATIVE""")))
   val productions =
     // Complement
     parseForced[Set[LFGProduction[String]]]("""
@@ -202,40 +199,23 @@ class LFGTestSuite extends FunSuite {
 
   val parser = new LFGParser(grammar)
 
-  def testSentence(tokens: List[String], good: Boolean = true) = {
-    println(tokens.mkString(" "))
+  def testSentence(good: Boolean)(implicit testPath: utest.framework.TestPath) = {
+    val tokens = testPath.value.last.split(" ").toList
     val fstructs = parser.parseTokens(tokens)
-    fstructs.foreach(fs => println(FStructureParser.makeString(fs)))
+    // println(tokens.mkString(" "))
+    // fstructs.foreach(fs => println(FStructureParser.makeString(fs)))
     assert(good != fstructs.isEmpty)
   }
 
-  test(s"John kissed Gary") {
-    testSentence(List("John", "kissed", "Gary"))
-  }
-  test(s"a man kissed Gary") {
-    testSentence(List("a", "man", "kissed", "Gary"))
-  }
-  test(s"the man kissed Gary") {
-    testSentence(List("the", "man", "kissed", "Gary"))
-  }
-  test(s"John kissed") {
-    testSentence(List("John", "kissed"), false)
-  }
-  test(s"John kissed Gary a man") {
-    testSentence(List("John", "kissed", "Gary", "a", "man"), false)
-  }
-  test(s"Gary I kissed") {
-    testSentence(List("Gary", "I", "kissed"))
-  }
-  test("what did the entity seem to try to hide") {
-    testSentence(List("what","did","the","entity","seem","to",
-                      "try","to","hide"))
-  }
-  test("did the entity hide Gary") {
-    testSentence(List("did","the","entity","hide", "Gary"))
-  }
-  test("what did the strange green entity seem to try to quickly hide") {
-    testSentence(List("what","did","the","strange","green","entity","seem","to",
-                      "try","to","quickly","hide"))
+  val tests = this {
+    "John kissed Gary" - testSentence(true)
+    "a man kissed Gary" - testSentence(true)
+    "the man kissed Gary" - testSentence(true)
+    "John kissed" - testSentence(false)
+    "John kissed Gary a man" - testSentence(false)
+    "Gary I kissed" - testSentence(true)
+    "what did the entity seem to try to hide" - testSentence(true)
+    "did the entity hide Gary" - testSentence(true)
+    "what did the strange green entity seem to try to quickly hide" - testSentence(true)
   }
 }

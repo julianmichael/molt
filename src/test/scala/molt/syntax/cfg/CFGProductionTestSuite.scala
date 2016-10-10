@@ -9,12 +9,12 @@ import molt.syntax.cfg.parsable.CFGParsables._
 import molt.syntax.cfg.parsable.GenericParsables._
 import molt.syntax.cfg.parsable._
 
-class CFGProductionTestSuite extends ParsableTestSuite[CFGProduction[String]] {
+object CFGProductionTestSuite extends ParsableTestSuite[CFGProduction[String]] {
   override val parameters = CFGProductionTestParameters
   override val parsable = CFGProductionParser
 }
 
-class CFGProductionPlusTestSuite extends ParsableTestSuite[List[String]] {
+object CFGProductionPlusTestSuite extends ParsableTestSuite[List[String]] {
   override val parameters = new PlusTestParameters(CFGProductionParser.NonterminalSymbol)
   override val parsable = Plus(CFGProductionParser.NonterminalSymbol)
 }

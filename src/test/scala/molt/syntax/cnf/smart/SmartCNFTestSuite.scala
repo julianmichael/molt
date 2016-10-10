@@ -1,6 +1,7 @@
 package molt.syntax.cnf.smart
 
-import org.scalatest.FunSuite
+import utest._
+
 import molt.syntax._
 
 import molt.syntax.cfg.parsable.ParseCommands._
@@ -11,7 +12,7 @@ import molt.syntax.cfg.parsable._
 import molt.syntax.cfg._
 import molt.syntax.cnf._
 
-class SmartCNFTestSuite extends FunSuite {
+class SmartCNFTestSuite extends TestSuite {
   // a s{i,a}mple grammar
   val lexCats = Set(new LexicalCategory[String] {
     val symbol = "A"
@@ -30,21 +31,14 @@ class SmartCNFTestSuite extends FunSuite {
     new BasicSmartParse[String])
 
   def testSentence(tokens: List[String], good: Boolean = true) = {
-    println(tokens.mkString(" "))
+    // println(tokens.mkString(" "))
     val trees = parser.parseTokens(tokens)
-    trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
+    // trees.take(20).toList.foreach(x => println(s"${x.prettyString}\n"))
   }
 
-  test(s"word") {
-    testSentence(List("word"))
+  val tests = this {
+    "word" - testSentence(List("word"))
+    "two words" - testSentence(List("two", "words"))
+    "THREE WHOLE WORDS!" - testSentence(List("THREE", "WHOLE", "WORDS!"))
   }
-
-  test(s"two words") {
-    testSentence(List("two", "words"))
-  }
-
-  test(s"THREE WHOLE WORDS!") {
-    testSentence(List("THREE", "WHOLE", "WORDS!"))
-  }
-
 }

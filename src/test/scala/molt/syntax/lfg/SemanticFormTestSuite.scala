@@ -12,7 +12,7 @@ import molt.syntax.cfg.parsable._
 
 import molt.syntax.lfg.parsable.LFGParsables._
 
-class SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
+object SemanticFormTestSuite extends ParsableTestSuite[SemanticForm] {
   override val parameters = SemanticFormTestParameters
   override val parsable = SemanticFormParser
 }

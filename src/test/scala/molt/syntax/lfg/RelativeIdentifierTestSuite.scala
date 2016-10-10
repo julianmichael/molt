@@ -12,7 +12,7 @@ import molt.syntax.cfg.parsable._
 
 import molt.syntax.lfg.parsable.LFGParsables._
 
-class RelativeIdentifierTestSuite extends ParsableTestSuite[RelativeIdentifier] {
+object RelativeIdentifierTestSuite extends ParsableTestSuite[RelativeIdentifier] {
   override val parameters = RelativeIdentifierTestParameters
   override val parsable = RelativeIdentifierParser
 }
