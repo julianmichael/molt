@@ -19,11 +19,11 @@ sealed trait CFGParsable[+A] {
   // nonterminal, and paired with them are methods to construct one
   // of this nonterminal-associated `A` from its constituent parts.
   val synchronousProductions: Map[List[CFGParsable[_]], (List[AST[CFGParsable[_]]] => Option[A])]
-  
+
   val tag: ASTTag[CFGParsable[_]]
-  
+
   def fromAST(ast: AST[CFGParsable[_]]): Option[A]
-  
+
   // ----- May be overridden -----
 
   // These are the strings that will be regarded as individual words (beyond the
