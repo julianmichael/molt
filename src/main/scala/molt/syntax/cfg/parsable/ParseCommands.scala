@@ -1,7 +1,5 @@
 package molt.syntax.cfg.parsable
 
-import sortstreams._
-
 /* THESE FUNCTIONS ARE THE PREFERRED WAY TO PARSE!
   * The other ways are dispreferred!
   * Kind of, not really. Do your own thing. Whatever.

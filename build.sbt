@@ -9,6 +9,8 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.0")
+
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.0.6",
   "com.chuusai" %% "shapeless" % "2.3.2",

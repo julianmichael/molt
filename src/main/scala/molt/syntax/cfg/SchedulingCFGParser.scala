@@ -4,7 +4,7 @@ import molt.syntax.LexicalCategory
 import molt.syntax.cfg._
 import molt.syntax.cnf._
 
-import sortstreams._
+import ordered._
 
 // The type parameter A is the type of symbol used in productions and ASTs. It
 // will typically be either String or Parsable[_].
@@ -21,7 +21,10 @@ class SchedulingCFGParser[A](
   } yield validParse
 
   def parseTokensFirst(tokens: Seq[String]) = for {
-    cnfParse <- cnfParser.parseTokens(tokens).takeFirst.toStream
+    cnfParse <- cnfParser.parseTokens(tokens) match {
+      case ONil() => Stream.empty
+      case head :< tail => head #:: tail().takeWhile(tail().order.equiv(head, _)).toStream
+    }
     validParse <- convertAST(cnfParse)
   } yield validParse
 }

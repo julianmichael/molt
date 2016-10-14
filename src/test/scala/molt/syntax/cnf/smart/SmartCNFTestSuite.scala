@@ -12,7 +12,7 @@ import molt.syntax.cfg.parsable._
 import molt.syntax.cfg._
 import molt.syntax.cnf._
 
-class SmartCNFTestSuite extends TestSuite {
+object SmartCNFTestSuite extends TestSuite {
   // a s{i,a}mple grammar
   val lexCats = Set(new LexicalCategory[String] {
     val symbol = "A"

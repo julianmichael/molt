@@ -5,15 +5,15 @@ import molt.syntax.cfg.ASTNormalTag
 import molt.syntax.cfg.ASTEmptyTag
 import molt.util.Memoize
 import molt.syntax.cnf._
-import sortstreams._
 import molt.syntax.cfg.CNFConversionTag
 import CNFConversionTag._
 
+import ordered._
 
 class SchedulingCYKParser[A](
   val cnfGrammar: CNFGrammar[A],
   val schedulingParams: SmartParseParameters[CNFAST[A]]) {
-    
+
   val productions = cnfGrammar.productions
   val lexicalCategories = cnfGrammar.lexicalCategories
   val startSymbols = cnfGrammar.startSymbols
@@ -59,22 +59,22 @@ class SchedulingCYKParser[A](
     nullable
   }
 
-  private[this] lazy val nullableTrees: SortedStream[CNFAST[A]] = {
-    if(allTags(ASTEmptyTag)) unitNullParses(CNFEmpty())
-    else SortedStream.empty
+  private[this] lazy val nullableTrees: OrderedStream[CNFAST[A]] = {
+    if(allTags(ASTEmptyTag)) (CNFEmpty(): CNFAST[A]) :< unitNullParses(CNFEmpty())
+    else OrderedStream.empty
   }
 
-  private[this] def unitNullParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+  private[this] def unitNullParses(subtree: CNFAST[A]): OrderedStream[CNFAST[A]] = {
     // assumption: subtree is a null parse tree
     val tag = subtree.tag
-    // only pair tree with smaller trees
+    // only pair a NULL tree with smaller trees for the first level
     val smallerNullableTrees =
-      if(subtree == CNFEmpty()) SortedStream.empty
+      if(subtree == CNFEmpty()) OrderedStream.empty
       else nullableTrees.takeWhile(_ != subtree)
 
     val oneLevelTreesList = productions.map (prod => prod match {
       case Unary(label, child) if(child == tag) =>
-        SortedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
+        OrderedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
       case Binary(label, left, right) => {
         // need to check that `right` is nullable tag because filtering on a
         // predicate that will never be satisfied will cause an infinite loop
@@ -82,88 +82,84 @@ class SchedulingCYKParser[A](
           smallerNullableTrees.filter(_.tag == right).map(
             nullTree => CNFBinaryNonterminal(label, subtree, nullTree): CNFAST[A])
         } else {
-          SortedStream.empty[CNFAST[A]]
+          OrderedStream.empty[CNFAST[A]]
         }
 
         val leftNulls = if(right == tag && nullableTags(left)) {
           smallerNullableTrees.filter(_.tag == left).map(
             nullTree => CNFBinaryNonterminal(label, nullTree, subtree): CNFAST[A])
         } else {
-          SortedStream.empty[CNFAST[A]]
+          OrderedStream.empty[CNFAST[A]]
         }
 
         val doubleNull = if(right == tag && left == tag) {
-          SortedStream.unit(CNFBinaryNonterminal(label, subtree, subtree): CNFAST[A])
+          OrderedStream.unit(CNFBinaryNonterminal(label, subtree, subtree): CNFAST[A])
         } else {
-          SortedStream.empty[CNFAST[A]]
+          OrderedStream.empty[CNFAST[A]]
         }
 
         leftNulls.merge(rightNulls).merge(doubleNull)
       }
-      case _ => SortedStream.empty
+      case _ => OrderedStream.empty
     })
-    val oneLevelTrees = oneLevelTreesList.foldLeft(SortedStream.empty)(_ merge _)
-    // we know that subtree must be the first one, because of monotonicity with
-    // respect to tree inclusion, and the fact that all parses of subtree will
-    // contain subtree.
-    SortedStream.SimpleStream {
-      Some(subtree, oneLevelTrees.flatMap(unitParses))
+    // TODO can more efficiently take it from an indexedSeq
+    val oneLevelTrees: OrderedStream[CNFAST[A]] = oneLevelTreesList.foldLeft(OrderedStream.empty)(_ merge _)
+    oneLevelTrees match {
+      case ONil() => ONil[CNFAST[A]]
+      case tree :< remainder => (tree: CNFAST[A]) :< remainder().merge(unitNullParses(tree))
     }
   }
 
-  private[this] def unitNonNullParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
+  private[this] def unitNonNullParses(subtree: CNFAST[A]): OrderedStream[CNFAST[A]] = {
     // assumption: subtree is not a null parse tree
     val tag = subtree.tag
     val oneLevelTreesList = productions.map (prod => prod match {
       case Unary(label, child) if(child == tag) =>
-        SortedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
+        OrderedStream.unit[CNFAST[A]](CNFUnaryNonterminal(label, subtree))
       case Binary(label, left, right) => {
         val rightNulls = if(left == tag && nullableTags(right)) {
           nullableTrees.filter(_.tag == right).map(
             nullTree => CNFBinaryNonterminal(label, subtree, nullTree): CNFAST[A])
         } else {
-          SortedStream.empty[CNFAST[A]]
+          OrderedStream.empty[CNFAST[A]]
         }
 
         val leftNulls = if(right == tag && nullableTags(left)) {
           nullableTrees.filter(_.tag == left).map(
             nullTree => CNFBinaryNonterminal(label, nullTree, subtree): CNFAST[A])
         } else {
-          SortedStream.empty[CNFAST[A]]
+          OrderedStream.empty[CNFAST[A]]
         }
 
         leftNulls.merge(rightNulls)
       }
-      case _ => SortedStream.empty
+      case _ => OrderedStream.empty
     })
 
-    val oneLevelTrees = oneLevelTreesList.foldLeft(SortedStream.empty)(_ merge _)
-    SortedStream.SimpleStream {
-      Some(subtree, oneLevelTrees.flatMap(unitParses))
+    // TODO once again, more efficiently make it from an IndexedSeq
+    val oneLevelTrees = oneLevelTreesList.foldLeft(OrderedStream.empty)(_ merge _)
+    oneLevelTrees match {
+      case ONil() => ONil[CNFAST[A]]
+      case tree :< remainder => (tree: CNFAST[A]) :< remainder().merge(unitNonNullParses(tree))
     }
   }
 
-  private[this] def unitParses(subtree: CNFAST[A]): SortedStream[CNFAST[A]] = {
-    if(subtree.isNullParse) unitNullParses(subtree)
-    else unitNonNullParses(subtree)
-  }
-
-  def parseTokens(tokens: Seq[String]): SortedStream[CNFAST[A]] = {
-    val parses: SortedStream[CNFAST[A]] = if(tokens.isEmpty) {
+  def parseTokens(tokens: Seq[String]): OrderedStream[CNFAST[A]] = {
+    val parses: OrderedStream[CNFAST[A]] = if(tokens.isEmpty) {
       nullableTrees
     }
     else {
-      val getEntry: (((Int, Int)) => SortedStream[CNFAST[A]]) = {
-        def getEntryGen(recurse: (((Int, Int)) => SortedStream[CNFAST[A]]))(indices: (Int, Int)): SortedStream[CNFAST[A]] = {
+      val getEntry: (((Int, Int)) => OrderedStream[CNFAST[A]]) = {
+        def getEntryGen(recurse: (((Int, Int)) => OrderedStream[CNFAST[A]]))(indices: (Int, Int)): OrderedStream[CNFAST[A]] = {
           val (level, offset) = indices
-          val lexicalOrBinary: SortedStream[CNFAST[A]] = {
-            if(level == 0) SortedStream.fromList((for { // lexical
+          val lexicalOrBinary: OrderedStream[CNFAST[A]] = {
+            if(level == 0) OrderedStream.fromSeq((for { // lexical
               cat <- lexicalCategories
               if cat.member(tokens(offset))
-            } yield CNFTerminal(cat.symbol, tokens(offset))).toList)
+            } yield CNFTerminal(cat.symbol, tokens(offset))).toVector)
             else {
               val indexPairPairs = (1 to level).map(i => ((i - 1, offset), (level - i, offset + i)))
-              def treesProducingIndexPair(indexPair: ((Int, Int), (Int, Int))): SortedStream[CNFAST[A]] = indexPair match { case (leftIndices, rightIndices) =>
+              def treesProducingIndexPair(indexPair: ((Int, Int), (Int, Int))): OrderedStream[CNFAST[A]] = indexPair match { case (leftIndices, rightIndices) =>
                 val leftCell = recurse(leftIndices)
                 val rightCell = recurse(rightIndices)
 
@@ -176,21 +172,24 @@ class SchedulingCYKParser[A](
                   case (left, right) => {
                     val leftTag = left.tag
                     val rightTag = right.tag
-                    SortedStream.fromList(productions.collect {
+                    OrderedStream.fromSeq(productions.collect {
                       case p@Binary(root, `leftTag`, `rightTag`) =>
                         CNFBinaryNonterminal(root, left, right): CNFAST[A]
-                    }.toList)
+                    }.toVector)
                   }
                 }
                 treeStream
               }
               indexPairPairs.map(treesProducingIndexPair _).foldLeft(
-                SortedStream.empty)(_ merge _)
+                OrderedStream.empty)(_ merge _)
             }
           }
-          lexicalOrBinary.flatMap(unitParses)
+          lexicalOrBinary match {
+            case ONil() => ONil[CNFAST[A]]
+            case tree :< remainder => tree :< remainder().merge(unitNonNullParses(tree))
+          }
         }
-        lazy val getEntryFunc: (((Int, Int)) => SortedStream[CNFAST[A]]) = Memoize(getEntryGen(getEntryFunc))
+        lazy val getEntryFunc: (((Int, Int)) => OrderedStream[CNFAST[A]]) = Memoize(getEntryGen(getEntryFunc))
         getEntryFunc
       }
       // indices for the root of the trees in the table
