@@ -12,7 +12,7 @@ resolvers ++= Seq(
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.0")
 
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core" % "7.0.6",
+  "org.scalaz" %% "scalaz-core" % "7.2.4",
   "com.chuusai" %% "shapeless" % "2.3.2",
   "com.lihaoyi" %% "utest" % "0.4.3" % "test"
 )

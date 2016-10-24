@@ -184,6 +184,7 @@ package object agenda {
     }
     def add(derivation: Derivation): Unit = {
       val heap = map.get(derivation.symbol).getOrElse(Heap.Empty[Derivation { type Result = derivation.Result }])
+      implicit val o = scalaz.Order.fromScalaOrdering[Derivation { type Result = derivation.Result }]
       map.put(derivation.symbol, heap.insert(derivation))
     }
   }
@@ -195,6 +196,8 @@ package object agenda {
   object Edge {
     implicit val ordering: Ordering[Edge] = Ordering.by[Edge, Derivation](_.derivation)
   }
+
+  implicit val edgeStreamOrder = scalaz.Order.fromScalaOrdering[:<[Edge]]
 
   object AgendaBasedSyncCNFParser {
     def buildFromSyncCFG[AllCFGProductions <: HList : <<:[SyncCFGProduction]#λ,

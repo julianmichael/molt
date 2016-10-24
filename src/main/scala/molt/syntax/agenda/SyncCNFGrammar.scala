@@ -75,8 +75,8 @@ object foldBigCFGProduction extends foldBigCFGProductionFallback {
 }
 
 trait transformProductionFallback extends Poly1 {
-  implicit def caseNary[Children <: HList, ChildSymbols <: HList, Parent, Result](
-    implicit folder: RightFolder.Aux[None.type :: ChildSymbols, (HNil, HNil, SyncProduction[ChildSymbols, Children, Parent]), foldBigCFGProduction.type, Result]) =
+  implicit def caseNary[Children <: HList, ChildSymbols <: HList, Parent](
+    implicit folder: RightFolder[None.type :: ChildSymbols, (HNil, HNil, SyncProduction[ChildSymbols, Children, Parent]), foldBigCFGProduction.type]) =
     at[SyncProduction[ChildSymbols, Children, Parent]] {
       prod => (None :: prod.childSymbols).foldRight((HNil: HNil, HNil: HNil, prod))(foldBigCFGProduction)
     }

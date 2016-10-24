@@ -44,7 +44,7 @@ class LFGSolver(
   }
 
   // transformer to be used with liftM
-  type SolutionStateT[M[+_], +A] = StateT[M, PartialSolution, A]
+  type SolutionStateT[M[+_], A] = StateT[M, PartialSolution, A]
   // solution state monad to represent the branching computation
   type SolutionState[A] = SolutionStateT[List, A]
   // convenience because we're always working in the same monad here
@@ -60,7 +60,7 @@ class LFGSolver(
     psol <- get
     _ <- put(psol.copy(_2 = x))
   } yield ()
-  val failure: SolutionState[Nothing] = List[Nothing]().liftM[SolutionStateT]
+  def failure[A]: SolutionState[A] = List[A]().liftM[SolutionStateT]
 
   val freshID: SolutionState[AbsoluteIdentifier] = for {
     fStructure <- getFStructure
@@ -126,13 +126,13 @@ class LFGSolver(
         } yield FMapping(m1 ++ m2)
       }
       case (FSet(s1), FSet(s2)) =>
-        state(FSet(s1 ++ s2)).lift[List]
+        state(FSet(s1 ++ s2): FStructurePart).lift[List]
       case (FValue(v1), FValue(v2)) if(v1 == v2) =>
-        state(FValue(v1)).lift[List]
+        state(FValue(v1): FStructurePart).lift[List]
       case (s1@FSemanticForm(_, _), s2@FSemanticForm(_, _)) if(s1 == s2) =>
-        state(s1).lift[List]
+        state(s1: FStructurePart).lift[List]
       // THIS CASE is where violations of Uniqueness cause failure!
-      case _ => failure
+      case _ => failure[FStructurePart]
     }
   }
 

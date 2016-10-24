@@ -1,3 +1,6 @@
 [submodule "lib/sorted-streams"]
 	path = lib/sorted-streams
 	url = https://github.com/julianmichael/sorted-streams
+[submodule "lib/ordered"]
+	path = lib/ordered
+	url = https://github.com/julianmichael/ordered.git
