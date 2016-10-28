@@ -18,6 +18,10 @@ import ordered._
 /** This is a temporary package for my new approach to agenda-based parsing of CFGs */
 package object agenda {
 
+  // why is this not in scalaz? TODO maybe I just need to import it
+  implicit def scalazOrder[A : Ordering]: scalaz.Order[A] =
+    scalaz.Order.fromScalaOrdering[A]
+
   // equals is NOT done by string---we don't want to cause unwanted collisions
   class ParseSymbol[A](label: String) {
     override def toString = label
@@ -55,6 +59,7 @@ package object agenda {
 
   import SyncCNFProduction._
 
+  // TODO maybe change combinator type members to type parameters
   sealed trait CNFCombinator
   sealed trait UnaryCombinator extends CNFCombinator {
     type Child
@@ -184,7 +189,6 @@ package object agenda {
     }
     def add(derivation: Derivation): Unit = {
       val heap = map.get(derivation.symbol).getOrElse(Heap.Empty[Derivation { type Result = derivation.Result }])
-      implicit val o = scalaz.Order.fromScalaOrdering[Derivation { type Result = derivation.Result }]
       map.put(derivation.symbol, heap.insert(derivation))
     }
   }
@@ -196,8 +200,6 @@ package object agenda {
   object Edge {
     implicit val ordering: Ordering[Edge] = Ordering.by[Edge, Derivation](_.derivation)
   }
-
-  implicit val edgeStreamOrder = scalaz.Order.fromScalaOrdering[:<[Edge]]
 
   object AgendaBasedSyncCNFParser {
     def buildFromSyncCFG[AllCFGProductions <: HList : <<:[SyncCFGProduction]#λ,
@@ -212,7 +214,7 @@ package object agenda {
       new AgendaBasedSyncCNFParser(genlex, combinators)
     }
   }
-  class AgendaBasedSyncCNFParser/**/(
+  class AgendaBasedSyncCNFParser(
     val genlex: String => OrderedStream[Derivation],
     val combinators: CNFCombinators) {
 
@@ -287,6 +289,177 @@ package object agenda {
         }
       }
       OrderedStream.exhaustively(nextRootNode)
+    }
+  }
+
+
+  // WITH TREES!!
+
+  implicit def edgeASTOrdering[A]: Ordering[(Derivation { type Result = A }, EdgeAST)] =
+    Ordering.by[(Derivation { type Result = A }, EdgeAST), Double](_._1.score)
+  implicit def edgeNodeOrdering[A]: Ordering[EdgeNode] =
+    Ordering.by[EdgeNode, Double](_.edge.derivation.score)
+
+  sealed trait EdgeAST {
+    def toStringPretty: String = toStringPretty(0)
+    def toStringPretty(tabs: Int): String = this match {
+      case EdgeTerminal(token, index) => ("\t" * tabs) + token
+      case EdgeNode(Edge(Derivation(symbol, item, score), begin, end), children) =>
+        ("\t" * tabs) + s"$symbol: $item\n" + children.map(_.toStringPretty(tabs + 1)).mkString("\n")
+    }
+  }
+  case class EdgeTerminal(
+    token: String,
+    index: Int
+  ) extends EdgeAST
+  case class EdgeNode(
+    edge: Edge,
+    children: List[EdgeAST]
+  ) extends EdgeAST
+
+  final class TreeChart(length: Int) {
+    // just doing a square because I'm lazy. TODO change
+    private[this] val cells = Array.fill(length * length){ new TreeCell }
+    // assume end > begin and they fit in the sentence
+    private[this] def cellIndex(begin: Int, end: Int): Int = (begin * length) + end - 1
+
+    def cell(begin: Int, end: Int): TreeCell = cells(cellIndex(begin, end))
+  }
+
+  final class TreeCell {
+    private[this] val map = MutableDependentMap.empty[ParseSymbol, λ[A => Heap[(Derivation { type Result = A }, EdgeAST)]]]
+    def getDerivations[A](ps: ParseSymbol[A]): Option[Heap[(Derivation { type Result = A }, EdgeAST)]] = map.get(ps)
+    def getDerivationStream[A](ps: ParseSymbol[A]): Option[OrderedStream[(Derivation { type Result = A }, EdgeAST)]] = map.get(ps).map { heap =>
+      OrderedStream.unfold(heap, (h: Heap[(Derivation { type Result = A}, EdgeAST)]) => h.uncons)
+    }
+    def add[A](pair: (Derivation { type Result = A }, EdgeAST)): Unit = {
+      val heap = map.get(pair._1.symbol).getOrElse(Heap.Empty[(Derivation { type Result = A }, EdgeAST)])
+      map.put(pair._1.symbol, heap.insert(pair))
+    }
+  }
+
+  // TODO: Make one generalized version that encompasses all of the ways you could generalize the initial parser.
+  object AgendaBasedSyncCNFParserWithTrees {
+    def buildFromSyncCFG[AllCFGProductions <: HList : <<:[SyncCFGProduction]#λ,
+                         AllCNFProductions <: HList](
+      genlex: String => OrderedStream[Derivation],
+      cfg: SyncCFG[AllCFGProductions])(
+      implicit fm: FlatMapper.Aux[transformProduction.type, AllCFGProductions, AllCNFProductions],
+      folder: RightFolder.Aux[AllCNFProductions, CNFCombinators, addCNFRule.type, CNFCombinators]
+    ): AgendaBasedSyncCNFParserWithTrees = {
+      val cnfProductions = SyncCNFGrammar.productionsFromSyncCFG(cfg)
+      val combinators = CNFCombinators.fromSyncCNFProductions(cnfProductions)
+      new AgendaBasedSyncCNFParserWithTrees(genlex, combinators)
+    }
+  }
+  class AgendaBasedSyncCNFParserWithTrees(
+    val genlex: String => OrderedStream[Derivation],
+    val combinators: CNFCombinators) {
+
+    final class ParseProcessWithTrees(val tokens: Vector[String]) {
+      val chart: TreeChart = new TreeChart(tokens.size)
+      // immutable agenda means we could easily keep track of the agenda history... could be useful in learning, hypothetically
+      var agenda: Heap[:<[EdgeNode]] = Heap.Empty[:<[EdgeNode]]
+      // cache lexical scores for the A* heuristic
+      // TODO should I just initialize the agenda with lexical stuff? test this---I suspect it'd be slightly worse to do so.
+      val lexicalScores = for ((word, i) <- tokens.zipWithIndex) yield {
+        genlex(word).ifNonEmpty match {
+          case None => ??? // this shouldn't happen... the stream should never be empty? or we should just return None from here and be done with it
+          case Some(dStream) =>
+            val edgeNodes = dStream.mapMonotone(d => (EdgeNode(Edge(d, i, i + 1), List[EdgeAST](EdgeTerminal(word, i)))))
+            agenda = agenda.insert(edgeNodes)
+            edgeNodes.head.edge.derivation.score
+        }
+      }
+
+      def step: Option[EdgeNode]= agenda.uncons map {
+        case (headStream, newAgenda) => headStream match {
+          case edgeNode :<+ remainingEdges =>
+            agenda = remainingEdges.ifNonEmpty match {
+              case None => newAgenda
+              case Some(re) => newAgenda.insert(re)
+            }
+            val Edge(curDeriv, begin, end) = edgeNode.edge
+            val symbol = curDeriv.symbol
+            val item = curDeriv.item
+            val score = curDeriv.score
+            chart.cell(begin, end).add((curDeriv: Derivation { type Result = curDeriv.Result }, edgeNode))
+
+            for {
+              leftCombinators <- combinators.rightThenLeftBinary.get(symbol).toSeq
+              newBegin <- 0 to (begin - 1)
+              cell = chart.cell(newBegin, begin)
+              leftSymbol <- leftCombinators.keys
+              leftCombinator <- leftCombinators.get(leftSymbol)
+              leftTargets <- cell.getDerivationStream(leftCombinator.leftSymbol)
+              newEdgeASTs = leftTargets.flatMap {
+                case (leftDeriv, leftEdgeAST) =>
+                  val derivStream = leftCombinator(leftDeriv, curDeriv)
+                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, newBegin, end), List(leftEdgeAST, edgeNode)))
+              }
+              nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
+            } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
+
+            for {
+              rightCombinators <- combinators.leftThenRightBinary.get(symbol).toSeq
+              newEnd <- (end + 1) to tokens.length
+              cell = chart.cell(end, newEnd)
+              rightSymbol <- rightCombinators.keys
+              rightCombinator <- rightCombinators.get(rightSymbol)
+              rightTargets <- cell.getDerivationStream(rightCombinator.rightSymbol)
+              newEdgeASTs = rightTargets.flatMap {
+                case (rightDeriv, rightEdgeAST) =>
+                  val derivStream = rightCombinator(curDeriv, rightDeriv)
+                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, begin, newEnd), List(edgeNode, rightEdgeAST)))
+              }
+              nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
+            } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
+
+            for {
+              unaryCombinator <- combinators.unary.get(symbol).toSeq
+              newEdgeASTs = unaryCombinator(curDeriv).mapMonotone(deriv => EdgeNode(Edge(deriv, begin, end), List(edgeNode)))
+              nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
+            } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
+
+            edgeNode
+        }
+      }
+
+      def evalNode[A](begin: Int, end: Int): Option[(Derivation, EdgeAST)] = {
+        var next: Option[EdgeNode] = None
+        var done = false
+        do {
+          next = step
+          done = next.map(n => n.edge.begin == begin && n.edge.end == end).getOrElse(true)
+        } while(!done)
+
+        next.map(n => (n.edge.derivation, n))
+      }
+
+      def evalNode[A](symbol: ParseSymbol[A], begin: Int, end: Int): Option[(Derivation { type Result = A }, EdgeAST)] = {
+        var next: Option[EdgeNode] = None
+        var done = false
+        do {
+          next = step
+          done = next.map(n => n.edge.derivation.symbol == symbol && n.edge.begin == begin && n.edge.end == end).getOrElse(true)
+        } while(!done)
+
+        next.map(n => (n.edge.derivation.asInstanceOf[Derivation { type Result = A }], n))
+      }
+
+      def evalRoot[A](symbol: ParseSymbol[A]): Option[(Derivation { type Result = A }, EdgeAST)] =
+        evalNode(symbol, 0, tokens.size)
+    }
+
+    def parseProcess(tokens: Vector[String]): ParseProcessWithTrees =
+      new ParseProcessWithTrees(tokens)
+
+    def parse[A](
+      tokens: Vector[String],
+      rootSymbol: ParseSymbol[A]
+    ): OrderedStream[(Derivation { type Result = A }, EdgeAST)] = {
+      val process = parseProcess(tokens)
+      OrderedStream.exhaustively(process.evalRoot(rootSymbol))
     }
   }
 
