@@ -32,7 +32,7 @@ package object agenda {
   }
 
 
-  case class Scored[A](a: A, score: Double)
+  case class Scored[A](item: A, score: Double)
   implicit def scoreOrdering[A]: Ordering[Scored[A]] = Ordering.by[Scored[A], Double](_.score)
 
   /* One of the main datatypes in the parser; also involved in how we translate a CFG */
