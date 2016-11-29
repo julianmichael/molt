@@ -32,8 +32,16 @@ package object agenda {
   }
 
 
-  case class Scored[A](item: A, score: Double)
-  implicit def scoreOrdering[A]: Ordering[Scored[A]] = Ordering.by[Scored[A], Double](_.score)
+  case class Scored[A](item: A, score: Double) {
+    def addScore(addition: Double) = Scored(item, score + addition)
+    def map[B](f: A => B): Scored[B] = Scored(f(item), score)
+    def flatMap[B](f: A => Scored[B]) = f(item).addScore(score)
+    def flatten[B](implicit ev: A =:= Scored[B]): Scored[B] = item.addScore(score)
+  }
+  object Scored {
+    implicit def ordering[A]: Ordering[Scored[A]] = Ordering.by[Scored[A], Double](_.score)
+    def unit[A](a: A): Scored[A] = Scored(a, 0.0)
+  }
 
   /* One of the main datatypes in the parser; also involved in how we translate a CFG */
   sealed trait Derivation {
