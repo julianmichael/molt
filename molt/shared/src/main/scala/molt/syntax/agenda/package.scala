@@ -203,10 +203,13 @@ package object agenda {
 
   case class Edge(
     derivation: Derivation,
+    heuristic: Double,
     begin: Int,
-    end: Int)
+    end: Int) {
+    def priority: Double = derivation.score + heuristic
+  }
   object Edge {
-    implicit val ordering: Ordering[Edge] = Ordering.by[Edge, Derivation](_.derivation)
+    implicit val ordering: Ordering[Edge] = Ordering.by[Edge, Double](_.priority)
   }
 
   object AgendaBasedSyncCNFParser {
@@ -229,16 +232,23 @@ package object agenda {
     def parse[A](tokens: Vector[String], rootSymbol: ParseSymbol[A]): OrderedStream[Derivation { type Result = A }] = {
       val chart = new Chart(tokens.size)
       var agenda = Heap.Empty[:<[Edge]]
+
+      val lexicalDerivStreams = tokens.map(genlex)
       // cache lexical scores for the A* heuristic
-      // TODO should I just initialize the agenda with lexical stuff? test this---I suspect it'd be slightly worse to do so.
-      val lexicalScores = for ((word, i) <- tokens.zipWithIndex) yield {
-        genlex(word).ifNonEmpty match {
-          case None => ??? // this shouldn't happen... the stream should never be empty? or we should just return None from here and be done with it
-          case Some(dStream) =>
-            val edges = dStream.map(d => (Edge(d, i, i + 1)))
-            agenda = agenda.insert(edges)
-            dStream.head.score
-        }
+      val lexicalScores = lexicalDerivStreams.map(_.headOption.get.score)
+      val outsideScores = {
+        val iter = for {
+          begin <- (0 until tokens.size)
+          end <- (begin to tokens.size)
+        } yield (begin, end) -> (lexicalScores.slice(0, begin).sum + lexicalScores.slice(end, tokens.size).sum)
+        iter.toMap
+      }
+        @inline def outsideScore(begin: Int, end: Int) = outsideScores((begin, end))
+
+      // start the agenda
+      for ((word, ds, i) <- (tokens, lexicalDerivStreams, (0 until tokens.size)).zipped) yield {
+        val edges = ds.mapMonotone(d => (Edge(d, outsideScore(i, i + 1), i, i + 1))).asInstanceOf[:<[Edge]]
+        agenda = agenda.insert(edges)
       }
 
       @tailrec
@@ -250,7 +260,7 @@ package object agenda {
               case None => newAgenda
               case Some(re) => newAgenda.insert(re)
             }
-            val Edge(curDeriv, begin, end) = edge
+            val Edge(curDeriv, _, begin, end) = edge
             val symbol = curDeriv.symbol
             val item = curDeriv.item
             val score = curDeriv.score
@@ -266,7 +276,7 @@ package object agenda {
               leftTargets <- cell.getDerivationStream(leftCombinator.leftSymbol)
               newDerivations = leftTargets.flatMap(leftDeriv => leftCombinator(leftDeriv, curDeriv))
               nonEmptyNewDerivations <- newDerivations.ifNonEmpty
-              newEdges = nonEmptyNewDerivations.map(d => Edge(d, newBegin, end))
+              newEdges = nonEmptyNewDerivations.map(d => Edge(d, outsideScore(newBegin, end), newBegin, end))
             } yield agenda = agenda.insert(newEdges)
 
             for {
@@ -278,14 +288,14 @@ package object agenda {
               rightTargets <- cell.getDerivationStream(rightCombinator.rightSymbol)
               newDerivations = rightTargets.flatMap(rightDeriv => rightCombinator(curDeriv, rightDeriv))
               nonEmptyNewDerivations <- newDerivations.ifNonEmpty
-              newEdges = nonEmptyNewDerivations.map(d => Edge(d, begin, newEnd))
+              newEdges = nonEmptyNewDerivations.map(d => Edge(d, outsideScore(begin, newEnd), begin, newEnd))
             } yield agenda = agenda.insert(newEdges)
 
             for {
               unaryCombinator <- combinators.unary.get(symbol).toSeq
               newDerivations = unaryCombinator(curDeriv)
               nonEmptyNewDerivations <- newDerivations.ifNonEmpty
-              newEdges = nonEmptyNewDerivations.map(d => Edge(d, begin, end))
+              newEdges = nonEmptyNewDerivations.map(d => Edge(d, outsideScore(begin, end), begin, end))
             } yield agenda = agenda.insert(newEdges)
 
             // assume that if the symbol is the same, the type works out... TODO make sure this is ok
@@ -303,22 +313,23 @@ package object agenda {
 
   // WITH TREES!!
 
-  implicit def edgeASTOrdering[A]: Ordering[(Derivation { type Result = A }, EdgeAST)] =
-    Ordering.by[(Derivation { type Result = A }, EdgeAST), Double](_._1.score)
+  implicit def edgeASTOrdering[A]: Ordering[(Derivation { type Result = A }, EdgeNode)] =
+    Ordering.by[(Derivation { type Result = A }, EdgeNode), Double](p => p._2.edge.priority)
   implicit def edgeNodeOrdering[A]: Ordering[EdgeNode] =
-    Ordering.by[EdgeNode, Double](_.edge.derivation.score)
+    Ordering.by[EdgeNode, Double](_.edge.priority)
 
   sealed trait EdgeAST {
     def toStringPretty: String = toStringPretty(0)
     def toStringPretty(tabs: Int): String = this match {
-      case EdgeTerminal(token, index) => ("\t" * tabs) + token
-      case EdgeNode(Edge(Derivation(symbol, item, score), begin, end), children) =>
+      case EdgeTerminal(token, _, index) => ("\t" * tabs) + token
+      case EdgeNode(Edge(Derivation(symbol, item, score), _, begin, end), children) =>
         ("\t" * tabs) + s"$symbol: $item\n" + children.map(_.toStringPretty(tabs + 1)).mkString("\n")
     }
   }
   case class EdgeTerminal(
     token: String,
-    index: Int
+    index: Int,
+    heuristic: Double
   ) extends EdgeAST
   case class EdgeNode(
     edge: Edge,
@@ -335,13 +346,13 @@ package object agenda {
   }
 
   final class TreeCell {
-    private[this] val map = MutableDependentMap.empty[ParseSymbol, λ[A => Heap[(Derivation { type Result = A }, EdgeAST)]]]
-    def getDerivations[A](ps: ParseSymbol[A]): Option[Heap[(Derivation { type Result = A }, EdgeAST)]] = map.get(ps)
-    def getDerivationStream[A](ps: ParseSymbol[A]): Option[OrderedStream[(Derivation { type Result = A }, EdgeAST)]] = map.get(ps).map { heap =>
-      OrderedStream.unfold(heap, (h: Heap[(Derivation { type Result = A}, EdgeAST)]) => h.uncons)
+    private[this] val map = MutableDependentMap.empty[ParseSymbol, λ[A => Heap[(Derivation { type Result = A }, EdgeNode)]]]
+    def getDerivations[A](ps: ParseSymbol[A]): Option[Heap[(Derivation { type Result = A }, EdgeNode)]] = map.get(ps)
+    def getDerivationStream[A](ps: ParseSymbol[A]): Option[OrderedStream[(Derivation { type Result = A }, EdgeNode)]] = map.get(ps).map { heap =>
+      OrderedStream.unfold(heap, (h: Heap[(Derivation { type Result = A}, EdgeNode)]) => h.uncons)
     }
-    def add[A](pair: (Derivation { type Result = A }, EdgeAST)): Unit = {
-      val heap = map.get(pair._1.symbol).getOrElse(Heap.Empty[(Derivation { type Result = A }, EdgeAST)])
+    def add[A](pair: (Derivation { type Result = A }, EdgeNode)): Unit = {
+      val heap = map.get(pair._1.symbol).getOrElse(Heap.Empty[(Derivation { type Result = A }, EdgeNode)])
       map.put(pair._1.symbol, heap.insert(pair))
     }
   }
@@ -370,14 +381,21 @@ package object agenda {
       var agenda: Heap[:<[EdgeNode]] = Heap.Empty[:<[EdgeNode]]
       // cache lexical scores for the A* heuristic
       // TODO should I just initialize the agenda with lexical stuff? test this---I suspect it'd be slightly worse to do so.
-      val lexicalScores = for ((word, i) <- tokens.zipWithIndex) yield {
-        genlex(word).ifNonEmpty match {
-          case None => ??? // this shouldn't happen... the stream should never be empty? or we should just return None from here and be done with it
-          case Some(dStream) =>
-            val edgeNodes = dStream.mapMonotone(d => (EdgeNode(Edge(d, i, i + 1), List[EdgeAST](EdgeTerminal(word, i)))))
-            agenda = agenda.insert(edgeNodes)
-            edgeNodes.head.edge.derivation.score
-        }
+      val lexicalDerivStreams = tokens.map(genlex)
+      val lexicalScores = lexicalDerivStreams.map(_.headOption.get.score)
+      val outsideScores = {
+        val iter = for {
+          begin <- (0 until tokens.size)
+          end <- (begin to tokens.size)
+        } yield (begin, end) -> (lexicalScores.slice(0, begin).sum + lexicalScores.slice(end, tokens.size).sum)
+        iter.toMap
+      }
+      @inline def outsideScore(begin: Int, end: Int) = outsideScores((begin, end))
+
+      // start the agenda
+      for ((word, ds, i) <- (tokens, lexicalDerivStreams, (0 until tokens.size)).zipped) yield {
+        val edgeNodes = ds.mapMonotone(d => EdgeNode(Edge(d, outsideScore(i, i + 1), i, i + 1), List[EdgeAST](EdgeTerminal(word, i, outsideScore(i, i + 1))))).asInstanceOf[:<[EdgeNode]]
+        agenda = agenda.insert(edgeNodes)
       }
 
       def step: Option[EdgeNode]= agenda.uncons map {
@@ -387,7 +405,7 @@ package object agenda {
               case None => newAgenda
               case Some(re) => newAgenda.insert(re)
             }
-            val Edge(curDeriv, begin, end) = edgeNode.edge
+            val Edge(curDeriv, _, begin, end) = edgeNode.edge
             val symbol = curDeriv.symbol
             val item = curDeriv.item
             val score = curDeriv.score
@@ -403,7 +421,7 @@ package object agenda {
               newEdgeASTs = leftTargets.flatMap {
                 case (leftDeriv, leftEdgeAST) =>
                   val derivStream = leftCombinator(leftDeriv, curDeriv)
-                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, newBegin, end), List(leftEdgeAST, edgeNode)))
+                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, outsideScore(newBegin, end), newBegin, end), List(leftEdgeAST, edgeNode)))
               }
               nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
             } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
@@ -418,14 +436,14 @@ package object agenda {
               newEdgeASTs = rightTargets.flatMap {
                 case (rightDeriv, rightEdgeAST) =>
                   val derivStream = rightCombinator(curDeriv, rightDeriv)
-                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, begin, newEnd), List(edgeNode, rightEdgeAST)))
+                  derivStream.mapMonotone(deriv => EdgeNode(Edge(deriv, outsideScore(begin, newEnd), begin, newEnd), List(edgeNode, rightEdgeAST)))
               }
               nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
             } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
 
             for {
               unaryCombinator <- combinators.unary.get(symbol).toSeq
-              newEdgeASTs = unaryCombinator(curDeriv).mapMonotone(deriv => EdgeNode(Edge(deriv, begin, end), List(edgeNode)))
+              newEdgeASTs = unaryCombinator(curDeriv).mapMonotone(deriv => EdgeNode(Edge(deriv, outsideScore(begin, end), begin, end), List(edgeNode)))
               nonEmptyNewEdgeASTs <- newEdgeASTs.ifNonEmpty
             } yield agenda = agenda.insert(nonEmptyNewEdgeASTs)
 
@@ -444,7 +462,7 @@ package object agenda {
         next.map(n => (n.edge.derivation, n))
       }
 
-      def evalNode[A](symbol: ParseSymbol[A], begin: Int, end: Int): Option[(Derivation { type Result = A }, EdgeAST)] = {
+      def evalNode[A](symbol: ParseSymbol[A], begin: Int, end: Int): Option[(Derivation { type Result = A }, EdgeNode)] = {
         var next: Option[EdgeNode] = None
         var done = false
         do {
@@ -455,7 +473,7 @@ package object agenda {
         next.map(n => (n.edge.derivation.asInstanceOf[Derivation { type Result = A }], n))
       }
 
-      def evalRoot[A](symbol: ParseSymbol[A]): Option[(Derivation { type Result = A }, EdgeAST)] =
+      def evalRoot[A](symbol: ParseSymbol[A]): Option[(Derivation { type Result = A }, EdgeNode)] =
         evalNode(symbol, 0, tokens.size)
     }
 
@@ -465,7 +483,7 @@ package object agenda {
     def parse[A](
       tokens: Vector[String],
       rootSymbol: ParseSymbol[A]
-    ): OrderedStream[(Derivation { type Result = A }, EdgeAST)] = {
+    ): OrderedStream[(Derivation { type Result = A }, EdgeNode)] = {
       val process = parseProcess(tokens)
       OrderedStream.exhaustively(process.evalRoot(rootSymbol))
     }
