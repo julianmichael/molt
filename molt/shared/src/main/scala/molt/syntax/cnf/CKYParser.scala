@@ -6,7 +6,7 @@ import molt.syntax.cfg.ASTNormalTag
 import molt.syntax.cfg.ASTEmptyTag
 import molt.util.Memoize
 
-class CYKParser[A](cnfGrammar: CNFGrammar[A]) {
+class CKYParser[A](cnfGrammar: CNFGrammar[A]) {
 
   val productions = cnfGrammar.productions
   val lexicalCategories = cnfGrammar.lexicalCategories

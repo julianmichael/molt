@@ -9,7 +9,7 @@ object Examples {
 
   // EXAMPLE USAGE
 
-  import SyncProductionSyntax._
+  import SyncCFGProductionSyntax._
 
   // example of how to make productions
   case class ExpStr(x: String)
@@ -20,21 +20,20 @@ object Examples {
   val IntSymb = new ParseSymbol[ExpInt]("Int")
 
   val genTerminals = (s: String) => {
-    val term = OrderedStream.unit(Derivation(Terminal(s), s, 0.0))
+    val term = ScoredStream.unit(Derivation(Terminal(s), s))
     val num = scala.util.Try(s.toInt).toOption match {
-      case None => OrderedStream.empty[Derivation]
-      case Some(i) => OrderedStream.unit(Derivation(IntSymb, ExpInt(i), 1.0))
+      case None => ScoredStream.empty[Derivation]
+      case Some(i) => ScoredStream.unit(Scored(Derivation(IntSymb, ExpInt(i)), 1.0))
     }
-    val arbStr = OrderedStream.unit(Derivation(StrSymb, ExpStr(s), 2.0))
-    // term merge num merge arbStr
-    num merge term
+    val arbStr = ScoredStream.unit(Scored(Derivation(StrSymb, ExpStr(s)), 2.0))
+    term merge num merge arbStr
   }
 
   val prod1 = StrSymb to StrSymb usingSingle {
     case ExpStr(str) => Scored(ExpStr(s"($str)"), 1.0)
   }
   val prod2 = (IntSymb, StrSymb) to StrSymb using {
-    case ExpInt(i) :: ExpStr(str) :: HNil => OrderedStream.unit(Scored(ExpStr(s"${i * i}:$str"), 1.0))
+    case ExpInt(i) :: ExpStr(str) :: HNil => ScoredStream.unit(Scored(ExpStr(s"${i * i}:$str"), 1.0))
   }
   val prod3 = (IntSymb, t"+", IntSymb) to IntSymb usingSingle {
     case ExpInt(i) :: _ :: ExpInt(i2) :: HNil => Scored(ExpInt(i + i2), 1.0)
@@ -58,10 +57,10 @@ object Examples {
   object Calculator {
     val Num = new ParseSymbol[Int]("Num")
     val genlex = (s: String) => {
-      val term = OrderedStream.unit(Derivation(Terminal(s), s, 0.0))
+      val term = ScoredStream.unit(Derivation(Terminal(s), s))
       val num = scala.util.Try(s.toInt).toOption match {
-        case None => OrderedStream.empty[Derivation]
-        case Some(i) => OrderedStream.unit(Derivation(Num, i, 1.0))
+        case None => ScoredStream.empty[Derivation]
+        case Some(i) => ScoredStream.unit(Scored(Derivation(Num, i), 1.0))
       }
       num merge term
     }

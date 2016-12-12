@@ -10,7 +10,7 @@ import CNFConversionTag._
 
 import ordered._
 
-class SchedulingCYKParser[A](
+class SchedulingCKYParser[A](
   val cnfGrammar: CNFGrammar[A],
   val schedulingParams: SmartParseParameters[CNFAST[A]]) {
 

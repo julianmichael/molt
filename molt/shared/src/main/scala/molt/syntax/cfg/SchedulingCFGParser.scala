@@ -11,9 +11,9 @@ import ordered._
 class SchedulingCFGParser[A](
   val cfg: ContextFreeGrammar[A],
   val schedulingParams: SmartParseParameters[CNFAST[CNFConversionTag[A]]]) {
-  
+
   val cnfGrammar = cfg.toCNF
-  val cnfParser = new SchedulingCYKParser(cnfGrammar, schedulingParams)
+  val cnfParser = new SchedulingCKYParser(cnfGrammar, schedulingParams)
 
   def parseTokens(tokens: Seq[String]) = for {
     cnfParse <- cnfParser.parseTokens(tokens).toStream

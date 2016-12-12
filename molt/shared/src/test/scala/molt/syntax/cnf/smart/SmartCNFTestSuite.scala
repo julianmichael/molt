@@ -26,7 +26,7 @@ object SmartCNFTestSuite extends TestSuite {
     productions = prods,
     lexicalCategories = lexCats,
     startSymbols = Set("A"))
-  val parser = new SchedulingCYKParser[String](
+  val parser = new SchedulingCKYParser[String](
     grammar,
     new BasicSmartParse[String])
 

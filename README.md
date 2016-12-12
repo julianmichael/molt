@@ -21,7 +21,7 @@ These are the theoretical constructs currently implemented:
 
 * Context-Free Grammar. The package ```molt.syntax.cfg``` contains utilities
   for the creation and parsing of CFGs. There are two parsing methodologies:
-  * Traditional CYK parsing. The implementation closely follows the algorithm
+  * Traditional CKY parsing. The implementation closely follows the algorithm
     described in [Lange and Leiss 2009][lange-leiss-2009] to produce all of
     the possible parse trees of a sentence that do not have any "cyclic unit
     parses" within them, i.e., where a nonterminal symbol produces nothing
@@ -35,7 +35,7 @@ These are the theoretical constructs currently implemented:
     ordering) on the original CFG parse trees.
 * Lexical Functional Grammar. The package ```molt.syntax.lfg``` contains
   utilities for creating and parsing LFGs. It currently uses the
-  traditional CYK CFG parser behind the scenes, but it will eventually
+  traditional CKY CFG parser behind the scenes, but it will eventually
   be parameterized over a choice of CFG parser. Completeness and coherence
   are implemented, as well as inside-out function application, but the
   following features remain to be done:

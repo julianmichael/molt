@@ -7,7 +7,7 @@ class CFGParser[A](
   cfg: ContextFreeGrammar[A]) {
 
   val cnfGrammar = cfg.toCNF
-  val cnfParser = new CYKParser(cnfGrammar)
+  val cnfParser = new CKYParser(cnfGrammar)
 
   def parseTokens(tokens: Seq[String]) = for {
     cnfParse <- cnfParser.parseTokens(tokens)

@@ -18,6 +18,9 @@ lazy val molt = crossProject.settings(
   scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-language:higherKinds"),
   testFrameworks += new TestFramework("utest.runner.Framework"),
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.0")
+).jsSettings(
+  // TODO re-enable once we stop getting the optimizer crash
+  scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }
 )
 
 lazy val moltJVM = molt.jvm
