@@ -52,6 +52,14 @@ package object agenda {
 
   // TODO maybe change combinator type members to type parameters
   sealed trait CNFCombinator
+
+  case class NullaryCombinator(
+    val productions: Vector[Nullary[_]]
+  ) extends CNFCombinator {
+    val derivations: ScoredStream[Derivation] =
+      productions.map(p => p.construct.map(Derivation(p.parentSymbol.asInstanceOf[ParseSymbol[Any]], _))).foldLeft(ScoredStream.empty[Derivation])(_ merge _)
+  }
+
   sealed trait UnaryCombinator extends CNFCombinator {
     type Child
     def childSymbol: ParseSymbol[Child]
@@ -113,6 +121,12 @@ package object agenda {
   }
 
   object addCNFRule extends Poly2 {
+    implicit def caseNullary[Parent] =
+      at[Nullary[Parent], CNFCombinators] { case (n @ Nullary(_, _), combinators) =>
+        val newProds = n +: combinators.nullary.productions
+        val newNullary = combinators.nullary.copy(productions = newProds)
+        combinators.copy(nullary = newNullary)
+      }
     implicit def caseUnary[Child, Parent] =
       at[Unary[Child, Parent], CNFCombinators] { case (u @ Unary(childSymbol, _, _), combinators) =>
         val curProductions = combinators.unary.get(childSymbol).map(_.productions).getOrElse(Vector.empty[Unary[Child, _]])
@@ -140,11 +154,13 @@ package object agenda {
   }
 
   case class CNFCombinators(
+    val nullary: NullaryCombinator,
     val unary: DependentMap[ParseSymbol, λ[C => UnaryCombinator { type Child = C }]],
     val leftThenRightBinary: DependentMap[ParseSymbol, λ[L => DependentMap[ParseSymbol, λ[R => BinaryCombinator { type Left = L; type Right = R }]]]],
     val rightThenLeftBinary: DependentMap[ParseSymbol, λ[R => DependentMap[ParseSymbol, λ[L => BinaryCombinator { type Left = L; type Right = R }]]]])
   object CNFCombinators {
     val empty = CNFCombinators(
+      nullary = NullaryCombinator(Vector()),
       unary = DependentMap.empty[ParseSymbol, λ[C => UnaryCombinator { type Child = C }]],
       leftThenRightBinary = DependentMap.empty[ParseSymbol, λ[L => DependentMap[ParseSymbol, λ[R => BinaryCombinator { type Left = L; type Right = R }]]]],
       rightThenLeftBinary = DependentMap.empty[ParseSymbol, λ[R => DependentMap[ParseSymbol, λ[L => BinaryCombinator { type Left = L; type Right = R }]]]])
@@ -156,12 +172,13 @@ package object agenda {
     }
   }
 
-  final class Chart(length: Int) { // just doing a square because I'm lazy. TODO change
+  final class Chart(length: Int) {
+    // just doing a square because I'm lazy. TODO change
     private[this] val cells = Array.fill(length * length){ new Cell }
+    private[this] val nullCell = new Cell
     // assume end > begin and they fit in the sentence
     private[this] def cellIndex(begin: Int, end: Int): Int = (begin * length) + end - 1
-
-    def cell(begin: Int, end: Int): Cell = cells(cellIndex(begin, end))
+    def cell(span: Option[(Int, Int)]): Cell = span.fold(nullCell) { case (begin, end) => cells(cellIndex(begin, end)) }
   }
 
   final class Cell {
@@ -178,8 +195,7 @@ package object agenda {
 
   case class EdgeStream(
     derivationStream: ScoredCons[Derivation],
-    begin: Int,
-    end: Int,
+    span: Option[(Int, Int)],
     heuristic: Double) {
     def priority: Double = derivationStream.head.score + heuristic
   }
@@ -215,69 +231,98 @@ package object agenda {
       val outsideScores = {
         val iter = for {
           begin <- (0 until tokens.size)
-          end <- (begin to tokens.size)
+          end <- ((begin + 1) to tokens.size)
         } yield (begin, end) -> (lexicalScores.slice(0, begin).sum + lexicalScores.slice(end, tokens.size).sum)
         iter.toMap
       }
-      @inline def outsideScore(begin: Int, end: Int) = outsideScores((begin, end))
+      val totalOutsideScore = lexicalScores.sum
+      @inline def outsideScore(span: Option[(Int, Int)]) = span.fold(totalOutsideScore)(outsideScores)
+
+      val allSpans = None +: (0 until tokens.size).flatMap(b => ((b + 1) to tokens.size).map(e => Some((b, e)))).toVector
+
+      def addToAgenda(es: EdgeStream): Unit = {
+        agenda = agenda.insert(es)
+      }
+
+      def addEdgeStream(derivStream: ScoredStream[Derivation], span: Option[(Int, Int)]): Unit =
+        derivStream.ifNonEmpty.map(EdgeStream(_, span, outsideScore(span))).foreach(addToAgenda)
 
       // start the agenda
       for ((word, ds, i) <- (tokens, lexicalDerivStreams, (0 until tokens.size)).zipped) yield {
-        ds.ifNonEmpty.foreach(
-          dscons => {
-            agenda = agenda.insert(EdgeStream(dscons, i, i + 1, outsideScore(i, i + 1)))
-          })
+        addEdgeStream(ds, Some((i, i + 1)))
       }
+      addEdgeStream(combinators.nullary.derivations, None)
 
       @tailrec
       def nextRootNode: Option[Scored[Derivation { type Result = A }]] = agenda.uncons match {
         case None => None
         case Some((headEdgeStream, newAgenda)) => headEdgeStream match {
-          case EdgeStream((newSD @ Scored(curDeriv, score)) ::<+ remainingDerivs, begin, end, heuristic) =>
-            agenda = remainingDerivs.ifNonEmpty.fold(newAgenda)(nextDerivs => newAgenda.insert(EdgeStream(nextDerivs, begin, end, heuristic)))
+          case EdgeStream((newSD @ Scored(curDeriv, score)) ::<+ remainingDerivs, span, heuristic) =>
+            agenda = newAgenda
+            addEdgeStream(remainingDerivs, span)
             // to avoid `unapply-selector` path non-unification problems
             val symbol = curDeriv.symbol
             val item = curDeriv.item
-            chart.cell(begin, end).add(newSD)
+            chart.cell(span).add(newSD)
             // find matching guys and put them in the agenda
-            for {
+
+            def leftCombine(leftSpan: Option[(Int, Int)], resultSpan: Option[(Int, Int)]): Unit = for {
               leftCombinators <- combinators.rightThenLeftBinary.get(symbol).toSeq
-              newBegin <- 0 to (begin - 1)
               leftSymbol <- leftCombinators.keys
               leftCombinator <- leftCombinators.get(leftSymbol)
-              leftTargets <- chart.cell(newBegin, begin).getDerivationStream(leftCombinator.leftSymbol)
-              newDerivations <- leftTargets.flatMap(leftDeriv => leftCombinator(leftDeriv, curDeriv)).adjust(score).ifNonEmpty
-              newEdgeStream = EdgeStream(newDerivations, newBegin, end, outsideScore(newBegin, end))
-            } yield agenda = agenda.insert(newEdgeStream)
+              leftTargets <- chart.cell(leftSpan).getDerivationStream(leftCombinator.leftSymbol)
+            } yield {
+              val newDerivations = leftTargets.flatMap(leftCombinator(_, curDeriv)).adjust(score)
+              addEdgeStream(newDerivations, resultSpan)
+            }
 
-            for {
+            def rightCombine(rightSpan: Option[(Int, Int)], resultSpan: Option[(Int, Int)]): Unit = for {
               rightCombinators <- combinators.leftThenRightBinary.get(symbol).toSeq
-              newEnd <- (end + 1) to tokens.length
               rightSymbol <- rightCombinators.keys
               rightCombinator <- rightCombinators.get(rightSymbol)
-              rightTargets <- chart.cell(end, newEnd).getDerivationStream(rightCombinator.rightSymbol)
-              newDerivations <- rightTargets.flatMap(rightDeriv => rightCombinator(curDeriv, rightDeriv)).adjust(score).ifNonEmpty
-              newEdges = EdgeStream(newDerivations, begin, newEnd, outsideScore(begin, newEnd))
-            } yield agenda = agenda.insert(newEdges)
+              rightTargets <- chart.cell(rightSpan).getDerivationStream(rightCombinator.rightSymbol)
+            } yield {
+              val newDerivations = rightTargets.flatMap(rightCombinator(curDeriv, _)).adjust(score)
+              addEdgeStream(newDerivations, resultSpan)
+            }
 
+            // unary case is same for null and non-null spans
             for {
-              unaryCombinator <- combinators.unary.get(symbol).toSeq
-              newDerivations <- unaryCombinator(curDeriv).adjust(score).ifNonEmpty
-              newEdges = EdgeStream(newDerivations, begin, end, outsideScore(begin, end))
-            } yield agenda = agenda.insert(newEdges)
+              unaryCombinator <- combinators.unary.get(symbol)
+            } yield {
+              val newDerivations = unaryCombinator(curDeriv).adjust(score)
+              addEdgeStream(newDerivations, span)
+            }
 
-            // assume that if the symbol is the same, the type works out... TODO make sure this is ok
-            if(begin == 0 && end == tokens.size && symbol == rootSymbol) {
-              Some(newSD.asInstanceOf[Scored[Derivation { type Result = A }]])
-            } else {
-              nextRootNode
+            span match {
+              case None =>
+                for(curSpan <- allSpans) yield {
+                  leftCombine(curSpan, curSpan)
+                  rightCombine(curSpan, curSpan)
+                }
+                nextRootNode
+              case Some((begin, end)) =>
+                for(newBegin <- 0 to (begin - 1)) yield {
+                  leftCombine(Some((newBegin, begin)), Some((newBegin, end)))
+                }
+                leftCombine(None, span)
+
+                for(newEnd <- (end + 1) to tokens.length) yield {
+                  rightCombine(Some((end, newEnd)), Some((begin, newEnd)))
+                }
+                rightCombine(span, None)
+
+                if(begin == 0 && end == tokens.size && symbol == rootSymbol) {
+                  Some(newSD.asInstanceOf[Scored[Derivation { type Result = A }]])
+                } else {
+                  nextRootNode
+                }
             }
         }
       }
       ScoredStream.exhaustively(nextRootNode)
     }
   }
-
 
   // WITH TREES!!
 

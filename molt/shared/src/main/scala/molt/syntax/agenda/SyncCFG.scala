@@ -56,6 +56,17 @@ object SyncCFGProductionSyntax {
       SyncCFGProduction(this, ({ case child :: HNil => child }: PartialFunction[Child :: HNil, Child]) andThen construct andThen ScoredStream.unit[Parent])
   }
 
+  case class NullaryCFGProductionHelper[Parent](
+    val parent: ParseSymbol[Parent]
+  ) {
+    def using(construct: ScoredStream[Parent]): SyncCFGProduction[HNil, HNil, Parent] =
+      SyncCFGProduction(CFGProduction(HNil, parent), { case HNil => construct })
+    def usingSingle(construct: Scored[Parent]): SyncCFGProduction[HNil, HNil, Parent] =
+      SyncCFGProduction(CFGProduction(HNil, parent), { case HNil => ScoredStream.unit(construct) })
+    def usingSingleZ(construct: Parent): SyncCFGProduction[HNil, HNil, Parent] =
+      SyncCFGProduction(CFGProduction(HNil, parent), { case HNil => ScoredStream.unit(construct) })
+  }
+
   implicit class tuple2Children[
     ChildrenTuple <: Product,
     ChildSymbols <: HList,
@@ -70,6 +81,10 @@ object SyncCFGProductionSyntax {
     def to[Parent](symb: ParseSymbol[Parent]) = UnaryCFGProductionHelper[Child, Parent](childSymbol, symb)
   }
 
+  implicit class unit2Null(empty: Unit) {
+    def to[Parent](symb: ParseSymbol[Parent]) = NullaryCFGProductionHelper[Parent](symb)
+  }
+
   implicit class TerminalInterpolator(val sc: StringContext) extends AnyVal {
     def t(args: Any*) = Terminal(sc.s(args: _*))
   }
@@ -81,4 +96,8 @@ object SyncCFGProductionSyntax {
   implicit def unaryCfgHelper2Production[Child, Parent](
     helper: UnaryCFGProductionHelper[Child, Parent]): CFGProduction[ParseSymbol[Child] :: HNil, ParseSymbol[Parent]] =
     CFGProduction(helper.child :: HNil, helper.parent)
+
+  implicit def nullaryCfgHelper2Production[Parent](
+    helper: NullaryCFGProductionHelper[Parent]): CFGProduction[HNil, ParseSymbol[Parent]] =
+    CFGProduction(HNil, helper.parent)
 }

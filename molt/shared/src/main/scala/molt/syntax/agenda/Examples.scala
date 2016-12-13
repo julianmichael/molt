@@ -32,16 +32,17 @@ object Examples {
   val prod1 = StrSymb to StrSymb usingSingle {
     case ExpStr(str) => Scored(ExpStr(s"($str)"), 1.0)
   }
-  val prod2 = (IntSymb, StrSymb) to StrSymb using {
+  val prod2 = (IntSymb, StrSymb) to StrSymb2 using {
     case ExpInt(i) :: ExpStr(str) :: HNil => ScoredStream.unit(Scored(ExpStr(s"${i * i}:$str"), 1.0))
   }
   val prod3 = (IntSymb, t"+", IntSymb) to IntSymb usingSingle {
     case ExpInt(i) :: _ :: ExpInt(i2) :: HNil => Scored(ExpInt(i + i2), 1.0)
   }
+  val prod4 = () to IntSymb usingSingle Scored(ExpInt(0), 1.0)
 
   val grammar1 = SyncCFG(prod1 :: HNil)
   val grammar2 = SyncCFG(prod1 :: prod2 :: HNil)
-  val grammar3 = SyncCFG(prod3 :: HNil)
+  val grammar3 = SyncCFG(prod1 :: prod2 :: prod4 :: HNil)
 
   // more testy grammary
   val cnf1 = SyncCNFGrammar.productionsFromSyncCFG(grammar1)

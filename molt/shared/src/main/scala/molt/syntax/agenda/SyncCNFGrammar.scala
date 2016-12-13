@@ -19,6 +19,9 @@ case class CNFChunk[L <: HList, LSymbols <: HList](symbols: LSymbols)(
 
 sealed trait SyncCNFProduction
 object SyncCNFProduction {
+  case class Nullary[Parent](
+    parentSymbol: ParseSymbol[Parent],
+    construct: ScoredStream[Parent]) extends SyncCNFProduction
   case class Unary[Child, Parent](
     childSymbol: ParseSymbol[Child],
     parentSymbol: ParseSymbol[Parent],
@@ -84,6 +87,10 @@ trait transformProductionFallback extends Poly1 {
 
 object transformProduction extends transformProductionFallback {
   import SyncCNFProduction._
+  implicit def caseNullary[Parent] =
+    at[SyncCFGProduction[HNil, HNil, Parent]] { sp =>
+      Nullary(sp.parentSymbol, sp.construct(HNil)) :: HNil
+    }
   implicit def caseUnary[Child, Parent] =
     at[SyncCFGProduction[ParseSymbol[Child] :: HNil, Child :: HNil, Parent]] { sp =>
       Unary(sp.childSymbols.head, sp.parentSymbol, sp.construct) :: HNil
