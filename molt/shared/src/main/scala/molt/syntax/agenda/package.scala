@@ -18,6 +18,7 @@ import ordered._
 /** This is a temporary package for my new approach to agenda-based parsing of CFGs */
 package object agenda {
 
+
   // why is this not in scalaz? TODO maybe I just need to import it
   implicit def scalazOrder[A : Ordering]: scalaz.Order[A] =
     scalaz.Order.fromScalaOrdering[A]

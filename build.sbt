@@ -4,6 +4,8 @@ lazy val root = project.in(file("."))
   publish := {},
   publishLocal := {})
 
+val monocleVersion = "1.3.2"
+
 lazy val molt = crossProject.settings(
   name := "molt",
   organization := "org.me",
@@ -12,6 +14,9 @@ lazy val molt = crossProject.settings(
     "org.me" %%% "ordered" % "0.1-SNAPSHOT",
     "org.scalaz" %%% "scalaz-core" % "7.2.4",
     "com.chuusai" %%% "shapeless" % "2.3.2",
+    "com.github.julien-truffaut" %%% "monocle-core"    % monocleVersion,
+    "com.github.julien-truffaut" %%% "monocle-generic" % monocleVersion,
+    "com.github.julien-truffaut" %%% "monocle-macro"   % monocleVersion,
     "com.lihaoyi" %%% "utest" % "0.4.3" % "test"
   ),
   scalaVersion := "2.11.8",

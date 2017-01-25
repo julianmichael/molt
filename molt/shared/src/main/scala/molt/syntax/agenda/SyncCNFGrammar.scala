@@ -9,6 +9,7 @@ import scalaz.Heap
 import shapeless._
 import UnaryTCConstraint._
 import LUBConstraint._
+import NotContainsConstraint._
 import ops.hlist._
 
 import ordered._
@@ -100,6 +101,22 @@ object transformProduction extends transformProductionFallback {
       Binary(sp.childSymbols.head, sp.childSymbols.tail.head, sp.parentSymbol, sp.construct) :: HNil
     }
 }
+
+// object removeRedundantChunks extends Poly2 {
+//   import SyncCNFProduction._
+//   implicit def caseNullary[Parent, Acc <: HList] =
+//     at[Nullary[Parent], Acc] { case (nullary, prods) => nullary :: prods }
+//   implicit def caseUnary[Child, Parent, Acc] =
+//     at[Unary[Child, Parent], Acc] { case (unary, prods) => unary :: prods }
+//   // TODO this doesn't exactly work because we need to compare by the actual values of the CNF chunk elements
+//   // so I guess actually we can't 100% do this on the type level.
+//   // This indicates that maybe instead we should just have a different class of CNF Chunk productions in their own data structure...?
+//   // eh... idk... maybe just rewrite it to not be such a generified parser.
+//   implicit def caseBinary[Left, Right, ParentChunkType, Acc <: HList : NotContains[Binary[Left, Right, CNFChunk[ParentChunkType]]]] =
+//     at[SyncCFGProduction[ParseSymbol[Left] :: ParseSymbol[Right] :: HNil, Left :: Right :: HNil, Parent]] { sp =>
+//       Binary(sp.childSymbols.head, sp.childSymbols.tail.head, sp.parentSymbol, sp.construct) :: HNil
+//     }
+// }
 
 case class SyncCNFGrammar[AllProductions <: HList : <<:[SyncCNFProduction]#λ](val productions: AllProductions)
 object SyncCNFGrammar {
